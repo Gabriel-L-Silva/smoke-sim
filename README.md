@@ -4,4 +4,4 @@ Repositório para versionar código compartilhado entre alunos de graduação e 
 
 Implementação de um simulador de fumaça
 
-Tem como submodulo o código do kim, disponível em: https://github.com/doyubkim/fluid-engine-dev.git
+Tem como submodulo o código do kim, disponível em: https://github.com/doyubkim/fluid-engine-dev
