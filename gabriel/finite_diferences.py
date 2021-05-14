@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
 
 class VectorGrid2:
     '''Class representing staggered grid, u and v component are stored at face
@@ -25,6 +24,7 @@ class VectorGrid2:
         if sample is not None:
             for i in range(y_points):
                 for j in range(x_points):
+                    #iterate over columns which is equivalent to iterate over x axis
                     self.data[i][j] = sample(x[j],y[i])
                     self.u[i][j], self.v[i][j] = self.data[i][j]
         elif data is not None:
@@ -35,6 +35,12 @@ class VectorGrid2:
             for i in range(m):
                 for j in range(n):
                     self.u[i][j], self.v[i][j] = self.data[i][j]
+
+    def __repr__(self):
+        return self.data
+
+    def __str__(self):
+        return str(self.data)
 
     def __getitem__(self, pos):
         '''Translates cartesian coord to matrice and return element
@@ -59,6 +65,7 @@ class VectorGrid2:
         div = np.zeros((m,n))
         for i in range(m):
             for j in range(n):
+                #iterate over columns which is equivalent to iterate over x axis
                 div[i][j] = self.divergent_at_point(j,i)
         
         return ScalarGrid2(self.resolution,self.grid_spacing,data=div)
@@ -131,6 +138,9 @@ class ScalarGrid2:
 
     def __getitem__(self, pos):
         '''Translates cartesian coord to matrice and return element
+
+        parameters:
+            - pos: cartesian coordinates of element
         '''
         x, y = pos
         return self.data[y][x]
