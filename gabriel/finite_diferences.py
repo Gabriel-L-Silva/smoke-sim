@@ -51,6 +51,38 @@ class VectorGrid2:
         x, y = pos
         return self.data[y][x]
 
+    def interpolate(self, x, y):
+        '''Bilinear interpolation of staggered grid, not treating border case
+        '''
+        if(x < 0.5*self.grid_spacing[0] or y < 0.5*self.grid_spacing[1]
+            or x > self.resolution[0] - 0.5*self.grid_spacing[0]
+            or y > self.resolution[1] - 0.5*self.grid_spacing[1]):
+            print("no border case")
+            return
+
+        dx, dy = self.grid_spacing
+        x0, y0 = 0.5*self.grid_spacing[0], 0.5*self.grid_spacing[1] #origin of grid
+        i = (x-x0)//dx
+        j = (y-y0)//dy
+        
+        xi = i+0.5*self.grid_spacing[0]
+        yj = j+0.5*self.grid_spacing[1]
+        x1, y1, q11 = xi, yj, self[int(i),int(j)]
+        x2, _y1, q21 = xi+1, yj, self[int(i+1),int(j)]
+        _x1, y2, q12 = xi, yj+1, self[int(i),int(j+1)]
+        _x2, _y2, q22 = xi+1, yj+1, self[int(i+1),int(j+1)]
+
+        if x1 != _x1 or x2 != _x2 or y1 != _y1 or y2 != _y2:
+            raise ValueError('points do not form a rectangle')
+        if not x1 <= x <= x2 or not y1 <= y <= y2:
+            raise ValueError('(x, y) not within the rectangle')
+
+        return (q11 * (x2 - x) * (y2 - y) +
+                q21 * (x - x1) * (y2 - y) +
+                q12 * (x2 - x) * (y - y1) +
+                q22 * (x - x1) * (y - y1)
+            ) / ((x2 - x1) * (y2 - y1) + 0.0)
+
     def plot(self, stream=False):
         if stream:
             plt.streamplot(self.x,self.y,self.u,self.v)
@@ -145,6 +177,38 @@ class ScalarGrid2:
         x, y = pos
         return self.data[y][x]
 
+    def interpolate(self, x, y):
+        '''Bilinear interpolation of cell centered grid, not treating border case
+        '''
+        if(x < 0.5*self.grid_spacing[0] or y < 0.5*self.grid_spacing[1]
+            or x > self.resolution[0] - 0.5*self.grid_spacing[0]
+            or y > self.resolution[1] - 0.5*self.grid_spacing[1]):
+            print("no border case")
+            return
+
+        dx, dy = self.grid_spacing
+        x0, y0 = 0.5*self.grid_spacing[0], 0.5*self.grid_spacing[1] #origin of grid
+        i = (x-x0)//dx
+        j = (y-y0)//dy
+        
+        xi = i+0.5*self.grid_spacing[0]
+        yj = j+0.5*self.grid_spacing[1]
+        x1, y1, q11 = xi, yj, self[int(i),int(j)]
+        x2, _y1, q21 = xi+1, yj, self[int(i+1),int(j)]
+        _x1, y2, q12 = xi, yj+1, self[int(i),int(j+1)]
+        _x2, _y2, q22 = xi+1, yj+1, self[int(i+1),int(j+1)]
+
+        if x1 != _x1 or x2 != _x2 or y1 != _y1 or y2 != _y2:
+            raise ValueError('points do not form a rectangle')
+        if not x1 <= x <= x2 or not y1 <= y <= y2:
+            raise ValueError('(x, y) not within the rectangle')
+
+        return (q11 * (x2 - x) * (y2 - y) +
+                q21 * (x - x1) * (y2 - y) +
+                q12 * (x2 - x) * (y - y1) +
+                q22 * (x - x1) * (y - y1)
+            ) / ((x2 - x1) * (y2 - y1) + 0.0)
+
     def gradient(self):
         m, n = self.data.shape
 
@@ -197,9 +261,9 @@ class ScalarGrid2:
         return (dright - dleft) / dx**2 + (dup + ddown) / dy**2
 
 def f1(x, y):
-    # return x+y
+    return x+y
     # return x**2 * np.sin(y)
-    return np.sin(x) * np.sin(y)
+    # return np.sin(x) * np.sin(y)
 
 def f2(x, y):
     # return np.asarray([1,1])
@@ -207,44 +271,62 @@ def f2(x, y):
     return np.asarray([np.sin(x),np.sin(y)])
     # return np.asarray([-y, x])
 
+def get_coords_from_figure(grid):
+    '''interative plot to calculate interpolation on clicked coord
+    '''
+    ev = None
+    def onclick(event):
+        nonlocal ev
+        ev = event
+        print(ev.xdata+ev.ydata, "   ", grid.interpolate(ev.xdata,ev.ydata))
+
+    fig, ax = plt.subplots()
+    # ax.title("sin(x)*sin(y)")
+    ax.pcolormesh(grid.x, grid.y, grid.data, shading='auto')
+    # ax.colorbar()
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
+
+    plt.show(block=True)
+    return (ev.xdata, ev.ydata) if ev is not None else None
+    # return (ev.x, ev.y) if ev is not None else None
+
 def main():
-    grids_res = (5,5)
-    grids_spc = (0.1,0.1)
+    grids_res = (3,3)
+    grids_spc = (1,1)
 
     grid = ScalarGrid2(grids_res, grids_spc, f1)
-    grad = grid.gradient()
-    lapl = grid.laplacian()
-    plt.title("Scalar field gradient laplacian")
-    plt.subplot(2,2,1)
-    plt.title("sin(x)*sin(y)")
-    plt.pcolormesh(grid.x, grid.y, grid.data, shading='auto')
-    plt.colorbar()
-    plt.subplot(2,2,2)
-    plt.title("laplacian")
-    plt.pcolormesh(lapl.x, lapl.y, lapl.data, shading='auto')
-    plt.colorbar()
-    plt.subplot(2,2,3)
-    plt.title("gradient")
-    grad.plot(True)
+    get_coords_from_figure(grid)
+    # grad = grid.gradient()
+    # lapl = grid.laplacian()
+    # plt.title("Scalar field gradient laplacian")
+    # plt.subplot(2,2,1)
+    # plt.title("sin(x)*sin(y)")
+    # plt.pcolormesh(grid.x, grid.y, grid.data, shading='auto')
+    # plt.colorbar()
+    # plt.subplot(2,2,2)
+    # plt.title("laplacian")
+    # plt.pcolormesh(lapl.x, lapl.y, lapl.data, shading='auto')
+    # plt.colorbar()
+    # plt.subplot(2,2,3)
+    # plt.title("gradient")
+    # grad.plot(True)
     plt.show()
     
-    vec_grid = VectorGrid2(grids_res, grids_spc, f2)
-    div = vec_grid.divergent()
-    lapl = vec_grid.laplacian()
-    plt.title("Vector field divergent laplacian")
-    plt.subplot(2,2,1)
-    plt.title("[sin(x),sin(y)]")
-    vec_grid.plot(True)
-    plt.subplot(2,2,2)
-    plt.title("laplacian")
-    lapl.plot(True)
-    plt.subplot(2,2,3)
-    plt.title("divergent")
-    plt.pcolormesh(div.x, div.y, div.data, shading='auto')
-    plt.colorbar()
-    plt.show()
-
-    
+    # vec_grid = VectorGrid2(grids_res, grids_spc, f2)
+    # div = vec_grid.divergent()
+    # lapl = vec_grid.laplacian()
+    # plt.title("Vector field divergent laplacian")
+    # plt.subplot(2,2,1)
+    # plt.title("[sin(x),sin(y)]")
+    # vec_grid.plot(True)
+    # plt.subplot(2,2,2)
+    # plt.title("laplacian")
+    # lapl.plot(True)
+    # plt.subplot(2,2,3)
+    # plt.title("divergent")
+    # plt.pcolormesh(div.x, div.y, div.data, shading='auto')
+    # plt.colorbar()
+    # plt.show()
 
 if __name__ == '__main__':
     main()
