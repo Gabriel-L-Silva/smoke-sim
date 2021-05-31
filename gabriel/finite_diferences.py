@@ -217,15 +217,15 @@ class ScalarGrid2:
 
         dx, dy = self.grid_spacing
         x0, y0 = 0.5*self.grid_spacing[0], 0.5*self.grid_spacing[1] #origin of grid
-        i = (x-x0)//dx
-        j = (y-y0)//dy
+        i = int((x-x0)//dx)
+        j = int((y-y0)//dy)
         
-        xi = i+0.5*self.grid_spacing[0]
-        yj = j+0.5*self.grid_spacing[1]
-        x1, y1, q11 = xi, yj, self[int(i),int(j)]
-        x2, _y1, q21 = xi+1, yj, self[int(i+1),int(j)]
-        _x1, y2, q12 = xi, yj+1, self[int(i),int(j+1)]
-        _x2, _y2, q22 = xi+1, yj+1, self[int(i+1),int(j+1)]
+        xi = self.x[i]
+        yj = self.y[j]
+        x1, y1, q11 = xi, yj, self[(i),(j)]
+        x2, _y1, q21 = xi+self.grid_spacing[0], yj, self[(i+1),(j)]
+        _x1, y2, q12 = xi, yj+self.grid_spacing[1], self[(i),(j+1)]
+        _x2, _y2, q22 = xi+self.grid_spacing[0], yj+self.grid_spacing[1], self[(i+1),(j+1)]
 
         if x1 != _x1 or x2 != _x2 or y1 != _y1 or y2 != _y2:
             raise ValueError('points do not form a rectangle')
@@ -298,9 +298,9 @@ def f1(x, y):
     # return np.sin(x) * np.sin(y)
 
 def f2(x, y):
-    return np.asarray([1,1])
+    # return np.asarray([1,1])
     # return np.asarray([x,y])
-    # return np.asarray([np.sin(x),np.sin(y)])
+    return np.asarray([np.sin(x),np.sin(y)])
     # return np.asarray([-y, x])
 
 def rmse(result, ref):
@@ -346,10 +346,10 @@ def get_coords_from_figure(grid):
 
 def main():
     grids_res = (3,3)
-    grids_spc = (1,1)
+    grids_spc = (0.5,0.5)
 
-    grid = ScalarGrid2(grids_res, grids_spc, f1)
-    get_coords_from_figure(grid)
+    # grid = ScalarGrid2(grids_res, grids_spc, f1)
+    # get_coords_from_figure(grid)
     # grad = grid.gradient()
     # lapl = grid.laplacian()
     # plt.title("Scalar field gradient laplacian")
@@ -364,10 +364,10 @@ def main():
     # plt.subplot(2,2,3)
     # plt.title("gradient")
     # grad.plot(True)
-    plt.show()
+    # plt.show()
     
-    # vec_grid = VectorGrid2(grids_res, grids_spc, f2)
-    # get_coords_from_figure(vec_grid)
+    vec_grid = VectorGrid2(grids_res, grids_spc, f2)
+    get_coords_from_figure(vec_grid)
     # div = vec_grid.divergent()
     # lapl = vec_grid.laplacian()
     # plt.title("Vector field divergent laplacian")
