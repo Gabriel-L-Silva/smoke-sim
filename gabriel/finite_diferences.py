@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import copy
 
 class VectorGrid2:
     '''Class representing staggered grid, u and v component are stored at face
@@ -53,7 +54,13 @@ class VectorGrid2:
         x, y = pos
         return self.data[y][x]
 
-    def interpolate(self, x, y):
+    def __iter__(self):
+        x_points, y_points = len(self.x), len(self.y)
+        for i in range(y_points):
+            for j in range(x_points):
+                yield (self.x[j] - 0.5*self.grid_spacing[0], self.y[i], self.data[i][j][0]), (self.x[j], self.y[i] - 0.5*self.grid_spacing[1], self.data[i][j][1])
+
+    def interpolate(self, x, y) -> np.ndarray:
         '''Bilinear interpolation of staggered grid, not treating border case
         '''
         if(x < 0.5*self.grid_spacing[0] or y < 0.5*self.grid_spacing[1]
@@ -110,7 +117,7 @@ class VectorGrid2:
                 q22 * (x - x1) * (y - y1)
             ) / ((x2 - x1) * (y2 - y1) + 0.0)
 
-        return [u,v]
+        return np.asarray([u,v])
 
     def plot(self, ax, stream=False):
         if stream:
@@ -238,8 +245,8 @@ class ScalarGrid2:
                 q22 * (x - x1) * (y - y1)
             ) / ((x2 - x1) * (y2 - y1) + 0.0)
 
-    def plot(self, ax):
-        ax.pcolormesh(self.x, self.y, self.data, shading='auto')
+    def plot(self, ax, shade='auto'):
+        ax.pcolormesh(self.x, self.y, self.data, shading=shade)
 
     def gradient(self):
         m, n = self.data.shape
@@ -292,6 +299,20 @@ class ScalarGrid2:
         
         return (dright - dleft) / dx**2 + (dup + ddown) / dy**2
 
+def backtrace(vec_field, ax, x, y, timestep, sub_steps):
+    w = copy.deepcopy(vec_field)
+    
+    ix, iy = vec_field.interpolate(x,y)
+    ax.quiver(x, y, ix, iy, color='red')
+    plt.pause(0.05)
+    s = timestep/sub_steps
+    pos_u = x, y
+    for _ in range(sub_steps):
+        pos_u = pos_u - s*vec_field.interpolate(pos_u[0], pos_u[1])
+        ax.scatter(pos_u[0], pos_u[1], c='red')
+        plt.pause(0.05)
+    return w, pos_u
+
 def f1(x, y):
     return x+y
     # return x**2 * np.sin(y)
@@ -304,17 +325,17 @@ def f2(x, y):
     # return np.asarray([-y, x])
 
 def rmse(result, ref):
-    '''Compare two floats
+    '''Compare two values with rmse
     output:
         -rse: root mean squared error of a against b
     '''
     if type(ref) == np.ndarray:
-        size = 2
+        size = ref.shape[0]
     else:
         size = 1 
     return np.sqrt(np.sum(np.square(result - ref))/size)
 
-def get_coords_from_figure(grid):
+def test_interpolate(grid):
     '''interative plot to calculate interpolation on clicked coord
     '''
     ev = None
@@ -344,18 +365,45 @@ def get_coords_from_figure(grid):
     return (ev.xdata, ev.ydata) if ev is not None else None
     # return (ev.x, ev.y) if ev is not None else None
 
+def test_backtrace(sca_grid, vec_grid, fig, ax, timestep, sub_steps):
+    '''interative plot to calculate interpolation on clicked coord
+    '''
+    ev = None
+    def onclick(event):
+        nonlocal ev
+        ev = event
+        w, pos = backtrace(vec_grid, ax, ev.xdata, ev.ydata, timestep, sub_steps) 
+        value = sca_grid.interpolate(pos[0], pos[1])
+        ax.scatter(ev.xdata, ev.ydata)
+        ax.annotate("%.3f"%value, (ev.xdata,ev.ydata))
+
+    plt.ion()
+    
+    vec_grid.plot(ax, stream = True)
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
+
+    plt.show(block=True)
+    return (ev.xdata, ev.ydata) if ev is not None else None
+    # return (ev.x, ev.y) if ev is not None else None
+
 def main():
-    grids_res = (3,3)
+    grids_res = (10,10)
     grids_spc = (0.5,0.5)
 
-    # grid = ScalarGrid2(grids_res, grids_spc, f1)
-    # get_coords_from_figure(grid)
-    # grad = grid.gradient()
-    # lapl = grid.laplacian()
+    fig, ax = plt.subplots()
+
+    ax.set_xlim(0, grids_res[0])
+    ax.set_ylim(0, grids_res[1])
+    sca_grid = ScalarGrid2(grids_res, grids_spc, f1)
+    sca_grid.plot(ax, shade='gouraud')
+    plt.show(block=False)
+    plt.pause(0.1)
+    # test_interpolate(sca_grid)
+    # lapl = sca_grid.laplacian()
     # plt.title("Scalar field gradient laplacian")
     # plt.subplot(2,2,1)
     # plt.title("sin(x)*sin(y)")
-    # plt.pcolormesh(grid.x, grid.y, grid.data, shading='auto')
+    # plt.pcolormesh(sca_grid.x, sca_grid.y, sca_grid.data, shading='auto')
     # plt.colorbar()
     # plt.subplot(2,2,2)
     # plt.title("laplacian")
@@ -367,7 +415,8 @@ def main():
     # plt.show()
     
     vec_grid = VectorGrid2(grids_res, grids_spc, f2)
-    get_coords_from_figure(vec_grid)
+    test_backtrace(sca_grid, vec_grid, fig, ax, 1, 10)
+    # test_interpolate(vec_grid)
     # div = vec_grid.divergent()
     # lapl = vec_grid.laplacian()
     # plt.title("Vector field divergent laplacian")
