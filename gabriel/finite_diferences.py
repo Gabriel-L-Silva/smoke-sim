@@ -5,6 +5,36 @@ import copy
 class VectorGrid2:
     '''Class representing staggered grid, u and v component are stored at face
     centers, left and bottom respectively
+
+    atrib:
+        - xx: x coordinate in relation to x velocity
+        - yx: y coordinate in relation to x velocity
+        - xy: x coordinate in relation to y velocity
+        - yy: y coordinate in relation to y velocity
+                          
+                          CELL
+        -------------------------------------------------                 
+        |                                               |                   
+        |                                               |                   
+        |                                               |                   
+        |                                               |                   
+        |                                               |                   
+        |                                               |                   
+        |                                               |                   
+        |      U                                        |                   
+(xx,yx) |----------->                                   |                   
+        |                                               |                   
+        |                                               |                   
+        |                                               |                   
+        |                                               |                   
+        |                         A                     |                   
+        |                         |                     |                   
+        |                         |  V                  |                   
+        |                         |                     |                   
+        |                         |                     |                   
+        -------------------------------------------------                
+                                (xy,yy)                              
+                                                    
     '''
     def __init__(self, resolution, grid_spacing, sample=None, data=None):
         self.resolution = resolution
@@ -17,9 +47,10 @@ class VectorGrid2:
         y = np.linspace(0.5*grid_spacing[1], resolution[1] - 0.5 * grid_spacing[1], y_points)
         
         # TODO melhorar o jeito que estão salvas as coords
-        self.x = x
-        self.y = y
-        xx, yy = np.meshgrid(x,y)
+        self.xx = x - 0.5*grid_spacing[0]
+        self.yx = y 
+        self.xy = x 
+        self.yy = y - 0.5*grid_spacing[1]
         self.data = np.zeros((y_points,x_points,2))
         self.u = np.zeros((y_points, x_points))
         self.v = np.zeros((y_points, x_points))
@@ -27,8 +58,8 @@ class VectorGrid2:
             for i in range(y_points):
                 for j in range(x_points):
                     #iterate over columns which is equivalent to iterate over x axis
-                    self.u[i][j] = sample(x[j]-0.5*grid_spacing[0],y[i])[0]
-                    self.v[i][j] = sample(x[j],y[i]-0.5*grid_spacing[1])[1]
+                    self.u[i][j] = sample(self.xx[j],self.yx[i])[0]
+                    self.v[i][j] = sample(self.xy[j],self.yy[i])[1]
                     self.data[i][j] = self.u[i][j], self.v[i][j]
         elif data is not None:
             self.data = data.copy()
@@ -55,10 +86,10 @@ class VectorGrid2:
         return self.data[y][x]
 
     def __iter__(self):
-        x_points, y_points = len(self.x), len(self.y)
+        x_points, y_points = len(self.xx), len(self.yy)
         for i in range(y_points):
             for j in range(x_points):
-                yield (self.x[j] - 0.5*self.grid_spacing[0], self.y[i], self.data[i][j][0]), (self.x[j], self.y[i] - 0.5*self.grid_spacing[1], self.data[i][j][1])
+                yield (self.xx[j], self.yx[i], self.u[i][j]), (self.xy[j], self.yy[i], self.v[i][j])
 
     def interpolate(self, x, y) -> np.ndarray:
         '''Bilinear interpolation of staggered grid, not treating border case
@@ -75,8 +106,8 @@ class VectorGrid2:
         ui = int((x-x0)/dx)
         uj = int((y-y0)/dy-0.5)
         
-        xi = self.x[ui] - 0.5*self.grid_spacing[0]
-        xj = self.y[uj]
+        xi = self.xx[ui]
+        xj = self.yx[uj]
         x1, y1, q11 = xi, xj, self[(ui),(uj)][0]
         x2, _y1, q21 = xi+self.grid_spacing[0], xj, self[(ui+1),(uj)][0]
         _x1, y2, q12 = xi, xj+self.grid_spacing[1], self[(ui),(uj+1)][0]
@@ -99,8 +130,8 @@ class VectorGrid2:
         vi = int((x-x0)/dx-0.5)
         vj = int((y-y0)/dy)
         
-        yi = self.x[vi] 
-        yj = self.y[vj] - 0.5*self.grid_spacing[1]
+        yi = self.xy[vi] 
+        yj = self.yy[vj]
         x1, y1, q11 = yi, yj, self[(vi),(vj)][1]
         x2, _y1, q21 = yi+self.grid_spacing[0], yj, self[(vi+1),(vj)][1]
         _x1, y2, q12 = yi, yj+self.grid_spacing[1], self[(vi),(vj+1)][1]
@@ -121,10 +152,17 @@ class VectorGrid2:
 
     def plot(self, ax, stream=False):
         if stream:
-            ax.streamplot(self.x,self.y,self.u,self.v)
+            '''
+            Do not draw lines in upper and right boundary
+            '''
+            speed = np.sqrt(self.u**2 + self.v**2)
+            lw = 3 * speed / speed.max()
+            ax.streamplot(self.xx,self.yy,self.u,self.v, color='k', density=0.6, linewidth=lw)
         else:
-            ax.quiver(self.x - 0.5*self.grid_spacing[0], self.y, self.u, np.zeros_like(self.u))
-            ax.quiver(self.x, self.y- 0.5*self.grid_spacing[0], np.zeros_like(self.v), self.v)
+            ax.quiver(self.xx, self.yx, self.u, np.zeros_like(self.u))
+            ax.quiver(self.xy, self.yy, np.zeros_like(self.v), self.v)
+        ax.set_xticks(self.xx)
+        ax.set_yticks(self.yy)
         ax.grid(True)
         
     def divergent(self):
@@ -246,7 +284,7 @@ class ScalarGrid2:
             ) / ((x2 - x1) * (y2 - y1) + 0.0)
 
     def plot(self, ax, shade='auto'):
-        ax.pcolormesh(self.x, self.y, self.data, shading=shade)
+        return ax.pcolormesh(self.x, self.y, self.data, shading=shade)
 
     def gradient(self):
         m, n = self.data.shape
@@ -345,7 +383,7 @@ def test_interpolate(grid):
         if type(grid) == VectorGrid2:
             u, v = grid.interpolate(ev.xdata,ev.ydata)
             ref = f2(ev.xdata,ev.ydata)
-            ax.quiver(ev.xdata,ev.ydata, u, v)
+            ax.quiver(ev.xdata,ev.ydata, u, v, color='red')
             print("RMSE: ", rmse([u,v],ref))
             print(ref, "   ", [u,v])
         elif type(grid) == ScalarGrid2:
@@ -379,7 +417,7 @@ def test_backtrace(sca_grid, vec_grid, fig, ax, timestep, sub_steps):
 
     plt.ion()
     
-    vec_grid.plot(ax, stream = True)
+    vec_grid.plot(ax,True)
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
 
     plt.show(block=True)
@@ -388,14 +426,15 @@ def test_backtrace(sca_grid, vec_grid, fig, ax, timestep, sub_steps):
 
 def main():
     grids_res = (10,10)
-    grids_spc = (0.5,0.5)
+    grids_spc = (.5,.5)
 
     fig, ax = plt.subplots()
 
     ax.set_xlim(0, grids_res[0])
     ax.set_ylim(0, grids_res[1])
     sca_grid = ScalarGrid2(grids_res, grids_spc, f1)
-    sca_grid.plot(ax, shade='gouraud')
+    plot = sca_grid.plot(ax, shade='gouraud')
+    fig.colorbar(plot)
     plt.show(block=False)
     plt.pause(0.1)
     # test_interpolate(sca_grid)
@@ -415,6 +454,8 @@ def main():
     # plt.show()
     
     vec_grid = VectorGrid2(grids_res, grids_spc, f2)
+    # for cell in vec_grid:
+    #     print(cell)
     test_backtrace(sca_grid, vec_grid, fig, ax, 1, 10)
     # test_interpolate(vec_grid)
     # div = vec_grid.divergent()
