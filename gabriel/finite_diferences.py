@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class StaggeredVectorGrid2:
     '''Class representing staggered grid, u and v component are stored at face
@@ -389,9 +390,9 @@ class ScalarGrid2:
         self.x = x
         self.y = y
         self.data = np.zeros((self.y_points,self.x_points))
-        xx, yy = np.meshgrid(x,y)
+        self.xx, self.yy = np.meshgrid(x,y)
         if sample is not None:
-            self.data = sample(xx, yy)
+            self.data = sample(self.xx, self.yy)
         elif data is not None:
             self.data = data
     
@@ -457,8 +458,31 @@ class ScalarGrid2:
                 q22 * (x - x1) * (y - y1)
             ) / ((x2 - x1) * (y2 - y1) + 0.0)
 
-    def plot(self, ax, shade='auto'):
-        return ax.pcolormesh(self.x, self.y, self.data, shading=shade)
+    def plot(self, ax, colorbar=False, shade='auto'):
+        p = ax.pcolormesh(self.x, self.y, self.data, shading=shade)
+        if colorbar: 
+            divider = make_axes_locatable(ax)
+
+            ax_cb = divider.new_horizontal(size="5%", pad=0.05)
+            fig = ax.get_figure()
+            fig.add_axes(ax_cb)
+            
+            plt.colorbar(p, cax=ax_cb)
+            ax_cb.yaxis.tick_right()
+            # ax_cb.yaxis.set_tick_params(labelright=False)
+
+    def plot_surf(self, ax, colorbar=False, shade='auto'):
+        p = ax.plot_surface(self.xx, self.yy, self.data,cmap='viridis')
+        if colorbar: 
+            divider = make_axes_locatable(ax)
+
+            ax_cb = divider.new_horizontal(size="5%", pad=0.05)
+            fig = ax.get_figure()
+            fig.add_axes(ax_cb)
+            
+            plt.colorbar(p, cax=ax_cb)
+            ax_cb.yaxis.tick_right()
+            # ax_cb.yaxis.set_tick_params(labelright=False)
 
     def gradient(self):
         m, n = self.data.shape
@@ -578,29 +602,21 @@ def poisson_solver(sca_grid: ScalarGrid2):
     mat = -4 * np.eye(m * n)
     b = np.zeros(m*n)
     for idx, cell in enumerate(sca_grid):
-        x, y, i, j, phi = cell
+        x, y, i, j, p = cell
         if (i != m-1 and i != 0 and j != n-1 and j != 0):
-            mat[idx,(i+1)*m+j] = 1 
-            mat[idx,(i-1)*m+j] = 1 
-            mat[idx,i*m+j+1] = 1 
-            mat[idx,i*m+j-1] = 1
-            b[idx] = phi
+            mat[idx,(j+1)*m+i] = 1 #right
+            mat[idx,(j-1)*m+i] = 1 #left
+            mat[idx,j*m+i+1] = 1 #up
+            mat[idx,j*m+i-1] = 1 #down
+            b[idx] = p
         else:
             mat[idx] = np.zeros(m*n)
             mat[idx,idx] = 1
-            b[idx] = np.sin(np.pi * x) if j != 0 else 0
-    
-    # (i*m + j)-1
-    # for i in range(m*n):
-
-
-    
-    # right = sca_grid[i+1, j] if i != n-1 else np.sin(np.pi*x)
-    # left = sca_grid[i-1, j] if i != 0 else np.sin(np.pi*x)
-    # up = sca_grid[i, j+1] if j != m-1 else np.sin(np.pi*x)
-    # down = sca_grid[i, j-1] if j != 0 else 0
-    p = np.linalg.solve(mat, b).reshape(sca_grid.data.shape)
-    return ScalarGrid2(sca_grid.resolution, sca_grid.grid_spacing, data=p)
+            if j == 0:
+                b[idx] = np.sin(np.pi * x)
+            
+    phi = np.linalg.solve(mat, b).reshape(sca_grid.data.shape)
+    return ScalarGrid2(sca_grid.resolution, sca_grid.grid_spacing, data=phi)
 
 def rmse(result, ref):
     '''Compare two values with rmse
@@ -718,9 +734,13 @@ def diffusion_term(w2: VectorGrid2, h, nu) -> VectorGrid2:
 
 def main():
     grids_res = (1,1)
-    grids_spc = (.25,.25)
+    grids_spc = (.031,.031)
 
-    fig, (ax1,ax2,ax3) = plt.subplots(1, 3)
+    # set up a figure twice as wide as it is tall
+    fig = plt.figure(figsize=plt.figaspect(0.5))
+    ax1 = fig.add_subplot(1, 3, 1)
+    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
 
     ax1.set_xlim(0, grids_res[0])
     ax1.set_ylim(0, grids_res[1])
@@ -729,14 +749,18 @@ def main():
     ax3.set_xlim(0, grids_res[0])
     ax3.set_ylim(0, grids_res[1])
     sca_grid = ScalarGrid2(grids_res, grids_spc, poisson_exerc)
-    sca_grid.plot(ax1)
-    ax1.set_title("G")
+    # sca_grid.plot_surf(ax1)
+    ax1.set_title("Erro")
     ax2.set_title("Nossa solução")
     ax3.set_title("Referencia")
     phi = poisson_solver(sca_grid)
-    phi.plot(ax2)
+    phi.plot_surf(ax2)
     poisson_sol = ScalarGrid2(grids_res, grids_spc, poisson_exerc_solution)
-    poisson_sol.plot(ax3)
+    poisson_sol.plot_surf(ax3)
+
+    diff = phi.data - poisson_sol.data
+    error = ScalarGrid2(grids_res, grids_spc, data=diff)
+    error.plot(ax1, True)
     print(rmse(poisson_sol.data, phi.data))
     # ax1.set_title("Campo escalar")
     # test_interpolate(sca_grid)
