@@ -611,12 +611,33 @@ def poisson_iter_solver(sca_grid: ScalarGrid2, x0, tol):
         elif idx_y == 0:
             b[idx] = np.sin(np.pi * x)
 
-    b = b.reshape((m,n))
+    b = np.diag(b.reshape((m,n)))
     A = sca_grid.data
     for k in range(max_it):
         x_old  = x0.copy()
         for i in range(m):
             x0[i] = (b[i] - np.dot(A[i,:i], x0[:i]) - np.dot(A[i,(i+1):], x_old[(i+1):])) / A[i ,i]
+    return A*x0
+
+def poisson_iter_solver_2(sca_grid: ScalarGrid2, x0, tol):
+    max_it = 10000
+    m, n = sca_grid.x_points, sca_grid.y_points
+    b = np.zeros(m*n)
+    dx = sca_grid.grid_spacing[0]
+    for idx, cell in enumerate(sca_grid):
+        x, y, idx_x, idx_y, p = cell
+        if idx_y == 0:
+            x0[idx_y, idx_x] = np.sin(np.pi * x)
+
+    A = sca_grid.data
+    for _ in range(max_it):
+        old = x0.copy()
+        for i in range(1,n-1):
+            for j in range(1,n-1):
+                x0[i,j] = 0.25*(x0[i+1,j] + x0[i-1,j] + x0[i,j+1] + x0[i,j-1] - A[i,j]*dx**2)
+        
+        if (abs(old - x0) < tol).all():
+            break
     return x0
 
 def poisson_solver(sca_grid: ScalarGrid2):
@@ -779,7 +800,7 @@ def test_poisson_solver_iter():
     ax2.set_title("Nossa solução")
     ax3.set_title("Referencia")
     poisson_result = ScalarGrid2(sca_grid.resolution, sca_grid.grid_spacing,
-                                data=poisson_iter_solver(sca_grid, np.zeros(sca_grid.x_points).T, 10e-3))
+                                data=poisson_iter_solver_2(sca_grid, np.zeros_like(sca_grid.data), 10e-5))
     poisson_result.plot_surf(ax2)
     poisson_sol = ScalarGrid2(grids_res, grids_spc, poisson_exerc_solution)
     poisson_sol.plot_surf(ax3)
