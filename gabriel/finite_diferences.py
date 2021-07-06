@@ -599,6 +599,26 @@ def poisson_exerc(x, y):
 def poisson_exerc_solution(x,y):
     return np.sin(np.pi*x)*np.cos(0.5*np.pi*y)
 
+def poisson_iter_solver(sca_grid: ScalarGrid2, x0, tol):
+    max_it = 10000
+    m, n = sca_grid.x_points, sca_grid.y_points
+    b = np.zeros(m*n)
+    dx = sca_grid.grid_spacing[0]
+    for idx, cell in enumerate(sca_grid):
+        x, y, idx_x, idx_y, p = cell
+        if (idx_y != m-1 and idx_y != 0 and idx_x != n-1 and idx_x != 0):
+            b[idx] = dx**2*p
+        elif idx_y == 0:
+            b[idx] = np.sin(np.pi * x)
+
+    b = b.reshape((m,n))
+    A = sca_grid.data
+    for k in range(max_it):
+        x_old  = x0.copy()
+        for i in range(m):
+            x0[i] = (b[i] - np.dot(A[i,:i], x0[:i]) - np.dot(A[i,(i+1):], x_old[(i+1):])) / A[i ,i]
+    return x0
+
 def poisson_solver(sca_grid: ScalarGrid2):
     m, n = sca_grid.x_points, sca_grid.y_points
     mat = -4 * np.eye(m * n)+0
@@ -621,7 +641,7 @@ def poisson_solver(sca_grid: ScalarGrid2):
             
     
     phi = np.linalg.solve(mat, b).reshape(sca_grid.data.shape)
-    return ScalarGrid2(sca_grid.resolution, sca_grid.grid_spacing, data=phi)
+    return 
 
 def rmse(result, ref):
     '''Compare two values with rmse
@@ -744,7 +764,7 @@ def print_mat(mat: np.ndarray):
             print(mat[i,j].astype(int),end=', ')
         print()
 
-def main():
+def test_poisson_solver_iter():
     grids_res = (1,1)
     grids_spc = (.031,.031)
 
@@ -754,26 +774,48 @@ def main():
     ax2 = fig.add_subplot(1, 3, 2, projection='3d')
     ax3 = fig.add_subplot(1, 3, 3, projection='3d')
 
-    # ax1.set_xlim(0, grids_res[0])
-    # ax1.set_ylim(0, grids_res[1])
-    # ax2.set_xlim(0, grids_res[0])
-    # ax2.set_ylim(0, grids_res[1])
-    # ax3.set_xlim(0, grids_res[0])
-    # ax3.set_ylim(0, grids_res[1])
     sca_grid = ScalarGrid2(grids_res, grids_spc, poisson_exerc)
-    # sca_grid.plot_surf(ax1)
     ax1.set_title("Erro")
     ax2.set_title("Nossa solução")
     ax3.set_title("Referencia")
-    phi = poisson_solver(sca_grid)
-    phi.plot_surf(ax2)
+    poisson_result = ScalarGrid2(sca_grid.resolution, sca_grid.grid_spacing,
+                                data=poisson_iter_solver(sca_grid, np.zeros(sca_grid.x_points).T, 10e-3))
+    poisson_result.plot_surf(ax2)
     poisson_sol = ScalarGrid2(grids_res, grids_spc, poisson_exerc_solution)
     poisson_sol.plot_surf(ax3)
 
-    diff = phi.data - poisson_sol.data
+    diff = poisson_result.data - poisson_sol.data
     error = ScalarGrid2(grids_res, grids_spc, data=diff)
     error.plot(ax1, True)
-    print(rmse(poisson_sol.data, phi.data))
+    print(rmse(poisson_sol.data, poisson_result.data))
+
+def test_poisson_solver():
+    grids_res = (1,1)
+    grids_spc = (.031,.031)
+
+    # set up a figure twice as wide as it is tall
+    fig = plt.figure(figsize=plt.figaspect(0.5))
+    ax1 = fig.add_subplot(1, 3, 1)
+    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+
+    sca_grid = ScalarGrid2(grids_res, grids_spc, poisson_exerc)
+    ax1.set_title("Erro")
+    ax2.set_title("Nossa solução")
+    ax3.set_title("Referencia")
+    poisson_result = ScalarGrid2(sca_grid.resolution, sca_grid.grid_spacing, data=poisson_solver(sca_grid))
+    poisson_result.plot_surf(ax2)
+    poisson_sol = ScalarGrid2(grids_res, grids_spc, poisson_exerc_solution)
+    poisson_sol.plot_surf(ax3)
+
+    diff = poisson_result.data - poisson_sol.data
+    error = ScalarGrid2(grids_res, grids_spc, data=diff)
+    error.plot(ax1, True)
+    print(rmse(poisson_sol.data, poisson_result.data))
+
+def main():
+    
+    test_poisson_solver_iter()
     # ax1.set_title("Campo escalar")
     # test_interpolate(sca_grid)
     # lapl = sca_grid.laplacian()
