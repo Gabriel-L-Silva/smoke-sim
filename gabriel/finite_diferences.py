@@ -422,9 +422,11 @@ class ScalarGrid2:
         return self.data[y][x]
 
     def __iter__(self):
+        '''Return a quintuple with (x coord, y coord, x index, y index, value)
+        '''
         for i in range(len(self.y)):
             for j in range(len(self.x)):
-                yield self.x[j], self.y[i], j, i, self[i,j]
+                yield self.x[j], self.y[i], j, i, self.data[i,j]
 
     def interpolate(self, x, y):
         '''Bilinear interpolation of cell centered grid, not treating border case
@@ -599,22 +601,25 @@ def poisson_exerc_solution(x,y):
 
 def poisson_solver(sca_grid: ScalarGrid2):
     m, n = sca_grid.x_points, sca_grid.y_points
-    mat = -4 * np.eye(m * n)
+    mat = -4 * np.eye(m * n)+0
     b = np.zeros(m*n)
+    dx = sca_grid.grid_spacing[0]
     for idx, cell in enumerate(sca_grid):
-        x, y, i, j, p = cell
-        if (i != m-1 and i != 0 and j != n-1 and j != 0):
-            mat[idx,(j+1)*m+i] = 1 #right
-            mat[idx,(j-1)*m+i] = 1 #left
-            mat[idx,j*m+i+1] = 1 #up
-            mat[idx,j*m+i-1] = 1 #down
-            b[idx] = p
+        x, y, idx_x, idx_y, p = cell
+        if (idx_y != m-1 and idx_y != 0 and idx_x != n-1 and idx_x != 0):
+            mat[idx,idx_y*m+idx_x+1] = 1 #right
+            mat[idx,idx_y*m+idx_x-1] = 1 #left
+            mat[idx,(idx_y+1)*m+idx_x] = 1 #up
+            mat[idx,(idx_y-1)*m+idx_x] = 1 #down
+            b[idx] = dx**2*p
         else:
             mat[idx] = np.zeros(m*n)
             mat[idx,idx] = 1
-            if j == 0:
+
+            if idx_y == 0:
                 b[idx] = np.sin(np.pi * x)
             
+    
     phi = np.linalg.solve(mat, b).reshape(sca_grid.data.shape)
     return ScalarGrid2(sca_grid.resolution, sca_grid.grid_spacing, data=phi)
 
@@ -732,6 +737,13 @@ def diffusion_term(w2: VectorGrid2, h, nu) -> VectorGrid2:
             w3.data[i][j] = w3.u[i][j], w3.v[i][j]
     return w3
 
+def print_mat(mat: np.ndarray):
+    m,n = mat.shape
+    for i in range(m):
+        for j in range(n):
+            print(mat[i,j].astype(int),end=', ')
+        print()
+
 def main():
     grids_res = (1,1)
     grids_spc = (.031,.031)
@@ -742,12 +754,12 @@ def main():
     ax2 = fig.add_subplot(1, 3, 2, projection='3d')
     ax3 = fig.add_subplot(1, 3, 3, projection='3d')
 
-    ax1.set_xlim(0, grids_res[0])
-    ax1.set_ylim(0, grids_res[1])
-    ax2.set_xlim(0, grids_res[0])
-    ax2.set_ylim(0, grids_res[1])
-    ax3.set_xlim(0, grids_res[0])
-    ax3.set_ylim(0, grids_res[1])
+    # ax1.set_xlim(0, grids_res[0])
+    # ax1.set_ylim(0, grids_res[1])
+    # ax2.set_xlim(0, grids_res[0])
+    # ax2.set_ylim(0, grids_res[1])
+    # ax3.set_xlim(0, grids_res[0])
+    # ax3.set_ylim(0, grids_res[1])
     sca_grid = ScalarGrid2(grids_res, grids_spc, poisson_exerc)
     # sca_grid.plot_surf(ax1)
     ax1.set_title("Erro")
