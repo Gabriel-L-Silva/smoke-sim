@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://scenes/grid.tscn" type="PackedScene" id=1]
+[ext_resource path="res://scenes/interface.tscn" type="PackedScene" id=2]
+[ext_resource path="res://scripts/main.gd" type="Script" id=3]
+
+[node name="Main" type="Node2D"]
+script = ExtResource( 3 )
+
+[node name="Grid" parent="." instance=ExtResource( 1 )]
+position = Vector2( -1.33484, -2.66968 )
+
+[node name="interface" parent="." instance=ExtResource( 2 )]
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 1280.0
+margin_bottom = 720.0
+
+[connection signal="show_grid_signal" from="interface" to="Grid" method="_on_interface_show_grid_signal"]
+[connection signal="show_vectors_signal" from="interface" to="Grid" method="_on_interface_show_vectors_signal"]

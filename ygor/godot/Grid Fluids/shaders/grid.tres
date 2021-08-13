@@ -1,0 +1,8 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=2]
+
+[ext_resource path="res://shaders/fluid.shader" type="Shader" id=1]
+
+[resource]
+shader = ExtResource( 1 )
+shader_param/speed = 0.5
+shader_param/smoke_color = Color( 0.188235, 0.184314, 0.184314, 1 )

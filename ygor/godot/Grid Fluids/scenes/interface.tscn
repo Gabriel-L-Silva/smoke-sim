@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://scripts/interface.gd" type="Script" id=1]
+
+[node name="interface" type="Control"]
+anchor_left = 0.0015625
+anchor_top = -0.00277778
+anchor_right = 0.314063
+anchor_bottom = 0.483333
+margin_right = 880.0
+margin_bottom = 370.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": true
+}
+
+[node name="ColorRect" type="ColorRect" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+margin_left = -250.0
+margin_top = -125.0
+margin_bottom = 125.0
+color = Color( 0.0392157, 0, 0.356863, 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ColorRect"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -100.0
+margin_top = -90.0
+margin_right = 100.0
+margin_bottom = 90.0
+custom_constants/separation = 10
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="show_grid" type="CheckBox" parent="ColorRect/VBoxContainer"]
+margin_right = 200.0
+margin_bottom = 24.0
+text = "Show Grid"
+
+[node name="show_vectors" type="CheckBox" parent="ColorRect/VBoxContainer"]
+margin_top = 34.0
+margin_right = 200.0
+margin_bottom = 58.0
+text = "Show Vectors"
+
+[node name="play_btn" type="Button" parent="ColorRect/VBoxContainer"]
+margin_top = 68.0
+margin_right = 200.0
+margin_bottom = 88.0
+disabled = true
+text = "Play"
+
+[node name="stop_btn" type="Button" parent="ColorRect/VBoxContainer"]
+margin_top = 98.0
+margin_right = 200.0
+margin_bottom = 118.0
+disabled = true
+text = "Stop"
+
+[connection signal="pressed" from="ColorRect/VBoxContainer/show_grid" to="." method="_on_show_grid_pressed"]
+[connection signal="pressed" from="ColorRect/VBoxContainer/show_vectors" to="." method="_on_show_vectors_pressed"]
