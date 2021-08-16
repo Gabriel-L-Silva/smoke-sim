@@ -29,18 +29,6 @@ vec2 subtractPressureGradiant(vec2 v, float p){
 	// TODO
 }
 
-void vertex(){
-	vec2 v = (EXTRA_MATRIX * (WORLD_MATRIX * vec4(VERTEX, 0.0, 1.0))).xy;
-	float p;
-	
-	// calculos
-	v = addForces(v);
-	v = advect(v);
-	v = diffuse(v);
-	p = computePressure(v);
-	v = subtractPressureGradiant(v, p);
-}
-
 void fragment() {
 	float u = texture(noise_img, UV).r; 
 	float v = texture(noise_img, UV).g; 

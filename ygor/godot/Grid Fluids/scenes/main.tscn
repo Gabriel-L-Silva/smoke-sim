@@ -8,7 +8,7 @@
 script = ExtResource( 3 )
 
 [node name="Grid" parent="." instance=ExtResource( 1 )]
-position = Vector2( -1.33484, -2.66968 )
+position = Vector2( 0.0793445, -4.0839 )
 
 [node name="interface" parent="." instance=ExtResource( 2 )]
 visible = false
