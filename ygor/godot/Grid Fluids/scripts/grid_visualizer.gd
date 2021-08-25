@@ -14,13 +14,13 @@ func _draw():
 	var limit_y = grid.squares_qtd.y * grid.tile_size.y
 
 	# cols
-	for x in range(grid.squares_qtd.x):
+	for x in range(grid.squares_qtd.x+1):
 		var col_pos = x * grid.tile_size.x
 		draw_line(Vector2(col_pos, 0), 
 				  Vector2(col_pos, limit_y), LINE_COLOR, LINE_WIDTH, true)
 
 	# rows
-	for y in range(grid.squares_qtd.y):
+	for y in range(grid.squares_qtd.y+1):
 		var row_pos = y * grid.tile_size.y + LINE_WIDTH
 		draw_line(Vector2(0, row_pos), 
 				  Vector2(limit_x, row_pos), LINE_COLOR, LINE_WIDTH, true)

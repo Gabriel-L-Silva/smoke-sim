@@ -1,9 +1,9 @@
 extends Node2D
 
 
-var tile_size 		= Vector2(32, 32)
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(round(grid_size.x/tile_size.x), round(grid_size.y/tile_size.y))
+var squares_qtd 	= Vector2(16, 9)
+var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var timer = 0
@@ -34,46 +34,47 @@ func _ready():
 			grid_vectors[x].append(vector)
 			$vector_visualizer.add_child(vector)
 
-func interpolate(pos):
-	if(pos.x < 0.5 * tile_size.x or pos.y < 0.5 * tile_size.y
-		or pos.x > grid_size.x - 0.5 * tile_size.x
-		or pos.y > grid_size.y - 0.5 * tile_size.y):
-		print("no border case")
-		return
+func bilinear_interpolation(pos):
+	#if(pos.x < 0.5 * tile_size.x or pos.y < 0.5 * tile_size.y
+	#	or pos.x > grid_size.x - 0.5 * tile_size.x
+	#	or pos.y > grid_size.y - 0.5 * tile_size.y):
+	#	print("no border case")
+	#	return
 
 	var dx = tile_size.x
 	var dy = tile_size.y
 	
 	var x0 = 0.5 * dx
 	var y0 = 0.5 * dy
+	
 	var i = int((pos.x-x0)/dx)
 	var j = int((pos.y-y0)/dy)
 
-	var xi = grid_vectors[i][j].pos.x
-	var yj = grid_vectors[i][j].pos.y
+	var xi = grid_vectors[i][j].position.x
+	var yj = grid_vectors[i][j].position.y
 	
 	var x1 = xi
 	var y1 = yj
-	var q11 = grid_vectors[j][i]
+	var q11 = grid_vectors[i][j]
 	
 	var x2 = xi + dx
 	var _y1 = yj
-	var q21 = grid_vectors[j][i+1]
+	var q21 = grid_vectors[i+1][j]
 	
 	var _x1 = xi
 	var y2 = yj + dy
-	var q12 = grid_vectors[j+1][i]
+	var q12 = grid_vectors[i][j+1]
 	
 	var _x2 = xi + dx
 	var _y2 = yj + dy
-	var q22 = grid_vectors[j+1][i+1]
+	var q22 = grid_vectors[i+1][j+1]
 
 	if x1 != _x1 or x2 != _x2 or y1 != _y1 or y2 != _y2:
 		print('points do not form a rectangle')
 		return
-	if not (x1 <= pos.x and pos.x <= x2) or not (y1 <= pos.y and pos.y <= y2):
-		print('(x, y) not within the rectangle')
-		return
+	#if not (x1 <= pos.x and pos.x <= x2) or not (y1 <= pos.y and pos.y <= y2):
+	#	print('(x, y) not within the rectangle')
+	#	return
 
 	return (q11.velocity * (x2 - pos.x) * (y2 - pos.y) +
 		q21.velocity * (pos.x - x1) * (y2 - pos.y) +
@@ -88,6 +89,9 @@ func add_particle():
 	particles.append(new_particle)
 	add_child(new_particle)
 	print('particle added')
+	
+	print(pos)
+	print(bilinear_interpolation(pos))
 
 func _process(delta):
 	timer += delta

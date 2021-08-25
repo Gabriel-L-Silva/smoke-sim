@@ -2,7 +2,7 @@
 
 [ext_resource path="res://textures/smoke.png" type="Texture" id=2]
 
-[sub_resource type="GDScript" id=5]
+[sub_resource type="GDScript" id=1]
 script/source = "extends Node2D
 
 
@@ -19,38 +19,38 @@ func _process(delta):
 	self.position += vel * delta * speed
 "
 
-[sub_resource type="CanvasItemMaterial" id=1]
+[sub_resource type="CanvasItemMaterial" id=2]
 blend_mode = 1
 
-[sub_resource type="Gradient" id=2]
+[sub_resource type="Gradient" id=3]
 offsets = PoolRealArray( 0.0775194, 0.325581, 0.744186 )
 colors = PoolColorArray( 0.197531, 0.197531, 0.197531, 1, 0.666667, 0.666667, 0.666667, 1, 0.0935673, 0.0935673, 0.0935673, 1 )
 
-[sub_resource type="GradientTexture" id=3]
-gradient = SubResource( 2 )
+[sub_resource type="GradientTexture" id=4]
+gradient = SubResource( 3 )
 
-[sub_resource type="ParticlesMaterial" id=4]
+[sub_resource type="ParticlesMaterial" id=5]
 resource_local_to_scene = true
 emission_shape = 1
-emission_sphere_radius = 4.0
+emission_sphere_radius = 5.0
 flag_disable_z = true
 direction = Vector3( 1, 1, 0 )
 gravity = Vector3( 0, 0, 0 )
-angular_velocity = 10.0
+angular_velocity = 8.0
 angular_velocity_random = 1.0
 orbit_velocity = 0.0
 orbit_velocity_random = 0.0
-color_ramp = SubResource( 3 )
+color_ramp = SubResource( 4 )
 
 [node name="Node2D" type="Node2D"]
-script = SubResource( 5 )
+script = SubResource( 1 )
 
 [node name="Particles2D" type="Particles2D" parent="."]
 modulate = Color( 1, 1, 1, 0.215686 )
-material = SubResource( 1 )
+material = SubResource( 2 )
 scale = Vector2( 0.1, 0.1 )
-amount = 20
-lifetime = 5.0
-preprocess = 3.0
-process_material = SubResource( 4 )
+amount = 24
+lifetime = 8.0
+preprocess = 4.0
+process_material = SubResource( 5 )
 texture = ExtResource( 2 )
