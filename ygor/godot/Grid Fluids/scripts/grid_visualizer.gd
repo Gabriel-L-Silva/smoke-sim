@@ -7,7 +7,7 @@ func _draw():
 	if not grid.show_grid:
 		return
 
-	var LINE_COLOR = Color(255, 255, 255)
+	var LINE_COLOR = Color(0, 0, 0)
 	var LINE_WIDTH = 2
 
 	var limit_x = grid.squares_qtd.x * grid.tile_size.x

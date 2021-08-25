@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/noise_combined.png-98f21cf40f460abadc5db4da0ed2e5ae.stex"
+path="res://.import/arrow.png-9a93dc3b81791fee5532cccc8c8282ef.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://textures/noise_combined.png"
-dest_files=[ "res://.import/noise_combined.png-98f21cf40f460abadc5db4da0ed2e5ae.stex" ]
+source_file="res://textures/arrow.png"
+dest_files=[ "res://.import/arrow.png-9a93dc3b81791fee5532cccc8c8282ef.stex" ]
 
 [params]
 
@@ -19,7 +19,7 @@ compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/bptc_ldr=0
 compress/normal_map=0
-flags/repeat=1
+flags/repeat=0
 flags/filter=true
 flags/mipmaps=false
 flags/anisotropic=false
