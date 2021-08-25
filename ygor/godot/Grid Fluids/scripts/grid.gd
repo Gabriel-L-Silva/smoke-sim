@@ -16,7 +16,7 @@ var particles = []
 
 
 func get_velocity(pos):
-	return Vector2(0, pos.y)
+	return Vector2(pos.x, -pos.y)
 
 func get_pressure(pos):
 	return pos.x+pos.y
@@ -92,9 +92,12 @@ func add_particle():
 func _process(delta):
 	timer += delta
 	if Input.is_action_pressed("left_click") and not get_parent().interface_visible:
-		if timer >= 0.1:
+		if timer >= 0.15:
 			add_particle()
 			timer = 0
+	
+	for p in particles:
+		p.vel = get_velocity(p.position)
 
 func _on_interface_show_grid_signal():
 	show_grid = not show_grid

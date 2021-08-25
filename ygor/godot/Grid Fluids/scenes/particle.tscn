@@ -1,7 +1,23 @@
 [gd_scene load_steps=7 format=2]
 
-[ext_resource path="res://scripts/particle.gd" type="Script" id=1]
 [ext_resource path="res://textures/smoke.png" type="Texture" id=2]
+
+[sub_resource type="GDScript" id=5]
+script/source = "extends Node2D
+
+
+var vel = Vector2(0, -1)
+var pressure = 0
+var speed = 0.1
+
+func update_velocity():
+	$Particles2D.process_material.gravity = Vector3(-vel.x*speed, -vel.y*speed, 0)
+
+func _process(delta):
+	update_velocity()
+	
+	self.position += vel * delta * speed
+"
 
 [sub_resource type="CanvasItemMaterial" id=1]
 blend_mode = 1
@@ -14,19 +30,20 @@ colors = PoolColorArray( 0.197531, 0.197531, 0.197531, 1, 0.666667, 0.666667, 0.
 gradient = SubResource( 2 )
 
 [sub_resource type="ParticlesMaterial" id=4]
+resource_local_to_scene = true
 emission_shape = 1
 emission_sphere_radius = 4.0
 flag_disable_z = true
 direction = Vector3( 1, 1, 0 )
-gravity = Vector3( 0, 100, 0 )
-angular_velocity = 20.0
+gravity = Vector3( 0, 0, 0 )
+angular_velocity = 10.0
 angular_velocity_random = 1.0
 orbit_velocity = 0.0
 orbit_velocity_random = 0.0
 color_ramp = SubResource( 3 )
 
 [node name="Node2D" type="Node2D"]
-script = ExtResource( 1 )
+script = SubResource( 5 )
 
 [node name="Particles2D" type="Particles2D" parent="."]
 modulate = Color( 1, 1, 1, 0.215686 )
