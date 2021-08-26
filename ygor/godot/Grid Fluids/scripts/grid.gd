@@ -7,6 +7,8 @@ var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var timer = 0
+var vel_min = pow(2, 63)
+var vel_max = -vel_min
 
 var Particle = preload("res://scenes/particle.tscn")
 var Vector = preload("res://scenes/vector.tscn")
@@ -30,17 +32,18 @@ func _ready():
 			var vector = Vector.instance()
 			vector.position = pos
 			vector.velocity = get_velocity(pos)
+			
+			if vector.velocity.length() > vel_max:
+				vel_max = vector.velocity.length()
+			
+			if vector.velocity.length() < vel_min:
+				vel_min = vector.velocity.length() 
+			
 			vector.pressure = get_pressure(pos) 
 			grid_vectors[x].append(vector)
 			$vector_visualizer.add_child(vector)
-
+	
 func bilinear_interpolation(pos):
-	#if(pos.x < 0.5 * tile_size.x or pos.y < 0.5 * tile_size.y
-	#	or pos.x > grid_size.x - 0.5 * tile_size.x
-	#	or pos.y > grid_size.y - 0.5 * tile_size.y):
-	#	print("no border case")
-	#	return
-
 	var dx = tile_size.x
 	var dy = tile_size.y
 	
@@ -49,6 +52,20 @@ func bilinear_interpolation(pos):
 	
 	var i = int((pos.x-x0)/dx)
 	var j = int((pos.y-y0)/dy)
+	
+	if pos.x - x0 < 0:
+		pos.x = x0
+	
+	if pos.y - y0 < 0:
+		pos.y = y0
+	
+	if i+1 == squares_qtd.x:
+		pos.x = grid_size.x - x0
+		i -= 1
+	
+	if j+1 == squares_qtd.y:
+		pos.y = grid_size.y - y0
+		j -= 1
 
 	var xi = grid_vectors[i][j].position.x
 	var yj = grid_vectors[i][j].position.y
@@ -69,13 +86,6 @@ func bilinear_interpolation(pos):
 	var _y2 = yj + dy
 	var q22 = grid_vectors[i+1][j+1]
 
-	if x1 != _x1 or x2 != _x2 or y1 != _y1 or y2 != _y2:
-		print('points do not form a rectangle')
-		return
-	#if not (x1 <= pos.x and pos.x <= x2) or not (y1 <= pos.y and pos.y <= y2):
-	#	print('(x, y) not within the rectangle')
-	#	return
-
 	return (q11.velocity * (x2 - pos.x) * (y2 - pos.y) +
 		q21.velocity * (pos.x - x1) * (y2 - pos.y) +
 		q12.velocity * (x2 - pos.x) * (pos.y - y1) +
@@ -89,9 +99,6 @@ func add_particle():
 	particles.append(new_particle)
 	add_child(new_particle)
 	print('particle added')
-	
-	print(pos)
-	print(bilinear_interpolation(pos))
 
 func _process(delta):
 	timer += delta
@@ -101,7 +108,11 @@ func _process(delta):
 			timer = 0
 	
 	for p in particles:
-		p.vel = get_velocity(p.position)
+		if p.must_remove:
+			particles.erase(p)
+			remove_child(p)
+		else:
+			p.vel = bilinear_interpolation(p.position)
 
 func _on_interface_show_grid_signal():
 	show_grid = not show_grid
