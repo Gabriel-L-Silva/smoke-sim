@@ -10,12 +10,14 @@ var timer = 0
 var vel_min = pow(2, 63)
 var vel_max = -vel_min
 
+var gravity = Vector2(0, 9.81)
+var sub_steps = squares_qtd.x #random value, maybe be lowered for performance improvement
+
 var Particle = preload("res://scenes/particle.tscn")
 var Vector = preload("res://scenes/vector.tscn")
 
 var grid_vectors = []
 var particles = []
-
 
 func get_velocity(pos):
 	return Vector2(pos.x, -pos.y)
@@ -43,7 +45,7 @@ func _ready():
 			grid_vectors[x].append(vector)
 			$vector_visualizer.add_child(vector)
 	
-func bilinear_interpolation(pos):
+func bilinear_interpolation(pos) -> Vector2:
 	var dx = tile_size.x
 	var dy = tile_size.y
 	
@@ -59,13 +61,13 @@ func bilinear_interpolation(pos):
 	if pos.y - y0 < 0:
 		pos.y = y0
 	
-	if i+1 == squares_qtd.x:
+	if i+1 >= squares_qtd.x:
 		pos.x = grid_size.x - x0
-		i -= 1
+		i -= squares_qtd.x
 	
-	if j+1 == squares_qtd.y:
+	if j+1 >= squares_qtd.y:
 		pos.y = grid_size.y - y0
-		j -= 1
+		j -= squares_qtd.y
 
 	var xi = grid_vectors[i][j].position.x
 	var yj = grid_vectors[i][j].position.y
@@ -100,10 +102,63 @@ func add_particle():
 	add_child(new_particle)
 	print('particle added')
 
+func external_forces():
+	return gravity #+ bouancy (+ mouse_reppelant_force)
+
+func add_force(w0: Array, delta):
+	var w1 = w0.duplicate(true)
+	for x in range(squares_qtd.x):
+		for y in range(squares_qtd.y):
+			w1[x][y].velocity = w1[x][y].velocity + delta * external_forces()
+	return w1
+
+func advect(w1: Array, timestep):
+	var w2 = w1.duplicate(true)
+	var s = timestep/sub_steps
+	for x in range(squares_qtd.x):
+		for y in range(squares_qtd.y):
+			var pos = grid_vectors[x][y].position
+			for _s in range(sub_steps):
+				pos = pos - s*bilinear_interpolation(pos)
+			w2[x][y].velocity = bilinear_interpolation(pos)
+	return w2
+
+func diffuse(w2, delta):
+	return w2 #Passthrough function because smoke has no viscosity
+
+func poisson_solver(vec_field):
+	#TODO implement poisson solver
+	pass
+
+func grad(vec_field):
+	#TODO implement finite diferences grad (all cells or single cell? as is function project is using cell grad)
+	pass
+	
+func project(w3, delta):
+	var q = poisson_solver(w3)
+	var w4 = w3.duplicate(true)
+	for x in range(squares_qtd.x):
+		for y in range(squares_qtd.y):
+			w4[x][y].velocity = w3[x][y].velocity - grad(q)
+
+func update_field(delta):
+	var w0 = grid_vectors
+	var w1 = add_force(w0, delta)
+	var w2 = advect(w1, delta)
+	var w3 = diffuse(w2, delta)
+	#var w4 = project(w3, delta)
+	return w3
 func _process(delta):
 	timer += delta
+	
+	grid_vectors = update_field(delta/5) #division so animation is slower
+	#update vector drawing each frame GAMBITO
+	#TODO improve vector drawing update method
+	$vector_visualizer.hide()
+	$vector_visualizer.show()
+		
 	if Input.is_action_pressed("left_click") and not get_parent().interface_visible:
-		if timer >= 0.15:
+		if timer >= 0.05:
 			add_particle()
 			timer = 0
 	

@@ -705,9 +705,20 @@ def test_interpolate(grid, fig, ax):
     return (ev.xdata, ev.ydata) if ev is not None else None
     # return (ev.x, ev.y) if ev is not None else None
 
-def test_backtrace(sca_grid, vec_grid, fig, ax, timestep, sub_steps):
+def test_backtrace():
     '''interative plot to calculate interpolation on clicked coord
     '''
+    grids_res = (1,1)
+    grids_spc = (.031,.031)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+
+    sca_grid = ScalarGrid2(grids_res, grids_spc, f1)
+    vec_grid = VectorGrid2(grids_res, grids_spc, f2)
+
+    timestep, sub_steps = .5, 10
+
     ev = None
     def onclick(event):
         nonlocal ev
@@ -836,7 +847,11 @@ def test_poisson_solver():
 
 def main():
     
-    test_poisson_solver_iter()
+    # test_poisson_solver_iter()
+    test_backtrace()
+    
+    
+    
     # ax1.set_title("Campo escalar")
     # test_interpolate(sca_grid)
     # lapl = sca_grid.laplacian()
