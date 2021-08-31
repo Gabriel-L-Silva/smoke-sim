@@ -326,6 +326,7 @@ class VectorGrid2:
         ax.grid(True)
 
     def gradient(self):
+        #TODO make divergent
         m, n = self.data.shape
 
         grad = np.zeros((m,n,2))
