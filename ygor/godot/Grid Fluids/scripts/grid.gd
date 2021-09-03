@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(32, 32)
+var squares_qtd 	= Vector2(16, 16)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -20,8 +20,8 @@ var grid_vectors = []
 var particles = []
 
 func get_velocity(pos):
-	return Vector2(sin(pos.x),sin(pos.y)+1)
 #	return Vector2(pow(pos.x,2)*abs(cos(pos.x)), -pow(pos.y,2)*abs(sin(pos.x)))/100
+	return Vector2(0,sin(pos.y))
 
 func get_pressure(pos):
 	return pos.x+pos.y
@@ -45,7 +45,7 @@ func _ready():
 			vector.pressure = get_pressure(pos) 
 			grid_vectors[x].append(vector)
 			$vector_visualizer.add_child(vector)
-	
+
 func bilinear_interpolation(pos) -> Vector2:
 	var dx = tile_size.x
 	var dy = tile_size.y
@@ -126,16 +126,15 @@ func advect(w1: Array, timestep):
 			w2[x][y].velocity = bilinear_interpolation(pos)
 	return w2
 
-func diffuse(w2, delta):
+func diffuse(w2):
 	return w2 #Passthrough function because smoke has no viscosity
 
-func poisson_solver(sca_field, x0, tol):
+func poisson_solver(grid, x0, tol):
 	var max_it = 10000
 	var m = squares_qtd.x
 	var n = squares_qtd.y
 	var dx = tile_size.x
 	var dy = tile_size.y
-	
 #	for idx_x in range(squares_qtd.x):
 #		for idx_y in range(squares_qtd.y):
 #			var x = vec_field.pos.x
@@ -144,111 +143,158 @@ func poisson_solver(sca_field, x0, tol):
 #			if idx_y == 0:
 #				x0[idx_y, idx_x] = np.sin(np.pi * x)
 
-	var A = sca_field.duplicate(true)
+	var A = grid.duplicate(true)
 	var it = 0
 	for _i in range(max_it):
 		var old = x0.duplicate(true)
-		for i in range(1,m-1):
-			for j in range(1,n-1):
-				x0[i][j] = 0.25*(x0[i+1][j] + x0[i-1][j] + x0[i][j+1] + x0[i][j-1] - A[i][j]*pow(dx,2))
+		for i in range(m):
+			for j in range(n):
+				#boundary condition
+				var xpp = 0
+				var ypp = 0
+				var center = A[i][j].pressure
+				var dx_sqr_inv = 1/pow(dx,2)
+				var dy_sqr_inv = 1/pow(dy,2)
+				
+				if i == m-1 or i == 0:
+					if i == 0:
+						#esquerda
+						var right = x0[i+1][j]
+						
+						xpp = (right - center)*dx_sqr_inv
+					if i== m-1:
+						#direita
+						var left = x0[i-1][j]
+						
+						xpp = (left - center)*dx_sqr_inv
+				else:
+					var right = x0[i+1][j]
+					var left = x0[i-1][j]
+					xpp = (right + left - 2*center)*dx_sqr_inv
+				
+				if j == n-1 or j == 0:
+					if j == 0:
+						#baixo
+						var up = x0[i][j+1]
+						
+						ypp = (up - center)*dy_sqr_inv
+					if j == n-1:
+						#cima
+						var down = x0[i][j-1]
+						
+						ypp = (down - center)*dy_sqr_inv
+				else:
+					var up = x0[i][j+1]
+					var down = x0[i][j-1]
+					ypp = (up + down - 2*center)*dy_sqr_inv
+					
+				x0[i][j] = xpp + ypp
 		
 		var accum = 0.0
+		print(old[0][0]," , ", x0[0][0]," , ", A[0][0].pressure )
 		for x in range(m):
 			for y in range(n):
 				accum += abs(old[x][y]-x0[x][y])
 		if accum < tol:
 			it = _i
 			break
+		old = x0.duplicate(true)
 	print(it)
-	return x0
+	
+	#Fazendo isso pq o godot nos odeia
+	for i in range(squares_qtd.x):
+		for j in range(squares_qtd.y):
+			A[i][j].pressure = x0[i][j]
+	return A
 
-func divergent(vec_grid):
+func divergent(grid):
 	var m = squares_qtd.x
 	var n = squares_qtd.y
 	
-	#Refactor make func
-	var div = []
-	for x in range(m):
-		div.append([])
-		for y in range(n):
-			div[x].append(0)
-			
+	var div = grid.duplicate(true)
+	
 	for i in range(m):
 		for j in range(n):
 			#iterate over columns which is equivalent to iterate over x axis
-			div[i][j] = divergent_at_point(vec_grid, i,j)
+			div[i][j].pressure = divergent_at_point(grid, i,j)
 	
 	return div
 
-func divergent_at_point(vec_grid, x, y):
+func divergent_at_point(grid, x, y):
 	var m = squares_qtd.x
 	var n = squares_qtd.y
-	var dx = tile_size.x
-	var dy = tile_size.y
+	var dx = tile_size.x * (2 if x!= m-1 or x != 0 else 1)
+	var dy = tile_size.y * (2 if y != n-1 or y != 0 else 1)
 	
-	var center = vec_grid[x][y].velocity
+	var center = grid[x][y].velocity
 
-	var right = vec_grid[x+1][y].velocity.x if x != m-1 else center.x
-	var left = vec_grid[x-1][y].velocity.x if x != 0 else center.x
-	var up = vec_grid[x][y+1].velocity.y if y != n-1 else center.y
-	var down = vec_grid[x][y-1].velocity.y if y != 0 else center.y
+	var right = grid[x+1][y].velocity.x if x != m-1 else -center.x
+	var left = grid[x-1][y].velocity.x if x != 0 else -center.x
+	var up = grid[x][y+1].velocity.y if y != n-1 else -center.y
+	var down = grid[x][y-1].velocity.y if y != 0 else -center.y
 	
-	return (right - left) / (2*dx) + (up - down) / (2*dy)
+	return (right - left) / dx + (up - down) / dy
 
-func gradient(sca_field: Array):
-	#TODO
+func gradient(grid):
 	var m = squares_qtd.x
 	var n = squares_qtd.y
 	
-	#FEIO TODO ARRUMAR
-	var grad = grid_vectors.duplicate(true)
+	var grad = grid.duplicate(true)
 	for x in range(m):
 		for y in range(n):
 			#iterate over columns which is equivalent to iterate over x axis
-			grad[x][y].velocity = gradient_at_point(sca_field, x, y)
+			grad[x][y].velocity = gradient_at_point(grid, x, y)
 	
 	return grad
 
-func gradient_at_point(sca_field, x, y):	
+func gradient_at_point(grid, x, y):	
 	var m = squares_qtd.x
 	var n = squares_qtd.y
 	
-	var dx = tile_size.x
-	var dy = tile_size.y
+	var dx = tile_size.x * (2 if x != m-1 or x != 0 else 1)
+	var dy = tile_size.y * (2 if y != n-1 or y != 0 else 1)
 	
-	var center = sca_field[x][y]
+	var center = grid[x][y].pressure
 
-	var right = sca_field[x+1][y] if x != m-1 else center
-	var left = sca_field[x-1][y] if x != 0 else center
-	var up = sca_field[x][y+1] if y != n-1 else center
-	var down = sca_field[x][y-1] if y != 0 else center
+	var right = grid[x+1][y].pressure if x != m-1 else center
+	var left = grid[x-1][y].pressure if x != 0 else center
+	var up = grid[x][y+1].pressure if y != n-1 else center
+	var down = grid[x][y-1].pressure if y != 0 else center
 	
-	return 0.5 * Vector2((center-left)/dx, (center-down)/dy)
-	
-func project(w3, delta):
+	return Vector2((right-left)/dx, (up-down)/dy)
+
+func project(w3):
 	#Refactor make func
-	var x0=[]
+	var x0 = []
 	for x in range(squares_qtd.x):
 		x0.append([])
 		for y in range(squares_qtd.y):
 			x0[x].append(1)
 	
-	var q = poisson_solver(divergent(w3), x0, 10e-5)
+	var q = poisson_solver(divergent(w3), x0, 1e-6)
+	var acc_w3 = 0.0
+	var acc_q = 0.0
+	for x in range(squares_qtd.x):
+		for y in range(squares_qtd.y):
+			acc_w3 += w3[x][y].pressure
+			acc_q += q[x][y].pressure
+	if acc_w3 == acc_q:
+		print("deu ruim")
 	var grad_q = gradient(q)
 	var w4 = w3.duplicate(true)
 	for x in range(squares_qtd.x):
 		for y in range(squares_qtd.y):
 			w4[x][y].velocity = w3[x][y].velocity - grad_q[x][y].velocity
-			w4[x][y].pressure = rho/(0.5*(tile_size.x+tile_size.y)) * q[x][y]
+			w4[x][y].pressure = rho/(0.5*(tile_size.x+tile_size.y)) * q[x][y].pressure
 			print(w4[x][y].velocity, w4[x][y].pressure)
 	return w4
 
 func update_field(delta):
-	var w0 = grid_vectors. duplicate(true)
+	var w0 = grid_vectors.duplicate(true)
 	var w1 = add_force(w0, delta)
 	var w2 = advect(w1, delta)
-	var w3 = diffuse(w2, delta)
-	var w4 = project(w3, delta)
+	var w3 = diffuse(w2)
+	var w4 = project(w3)
 	return w4
 
 func _process(delta):

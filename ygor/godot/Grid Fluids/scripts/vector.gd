@@ -14,3 +14,4 @@ func _draw():
 	var c = Color.from_hsv(170/360.0, 1, l)
 	$Sprite.modulate = c
 	$Sprite.rotation = velocity.angle() + PI/2
+	$Sprite.scale = grid.tile_size/$Sprite.texture.get_size().length()
