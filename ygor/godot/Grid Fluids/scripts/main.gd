@@ -1,9 +1,6 @@
 extends Node2D
 
 var interface_visible = true
-
-func _ready():
-	$interface.show()
 	
 func _input(event):
 	if event.is_action_pressed("show_interface"):
