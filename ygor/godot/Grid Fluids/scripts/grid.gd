@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(32, 32)
+var squares_qtd 	= Vector2(64, 64)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -29,7 +29,6 @@ class VectorClass:
 	
 		if velocity.y > m_val: velocity.y = m_val
 		if velocity.y < -m_val: velocity.y = -m_val
-	
 
 func get_velocity(pos):
 	return Vector2(pos.x, pos.y)
