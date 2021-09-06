@@ -7,6 +7,7 @@
 void GridFluids::_register_methods()
 {
     register_method("update_field", &GridFluids::update_field);
+    register_method("bilinear_interpolation_grid", &GridFluids::bilinear_interpolation_grid);
     
     register_property<GridFluids, double>("max_speed", &GridFluids::maxSpeed, 1000.0);
     register_property<GridFluids, int>("max_iter_poisson", &GridFluids::maxIterPoisson, 20);
@@ -242,4 +243,54 @@ Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, int x,
             q22.vel * (x - x1) * (y - y1)
             ) / ((x2 - x1) * (y2 - y1));
     }	
+}
+
+Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pressure)
+{
+    int i = floor( (pos.y - tile_size.y / 2.0) / tile_size.y) + 1;
+	int j = floor( (pos.x - tile_size.x / 2.0) / tile_size.x) + 1;
+
+    Array aux;
+    Array aux2;
+
+    aux = grid[i];
+    aux2 = grid[i+1];
+
+    Object* q11 = aux[j];
+	Object* q12 = aux[j+1];
+
+	Object* q21 = aux2[j];
+	Object* q22 = aux2[j+1];
+	
+	double x1 = q11->get("pos.x");
+	double y1 = q11->get("pos.y");
+	
+	double x2 = x1 + tile_size.x;
+	double y2 = y1 + tile_size.y;
+
+    if (pressure){
+        double p11 = q11->get("pressure");
+        double p12 = q12->get("pressure");
+        double p21 = q21->get("pressure");
+        double p22 = q22->get("pressure");
+
+        double result = (p11 * (x2 - pos.x) * (y2 - pos.y) +
+            p21 * (pos.x - x1) * (y2 - pos.y) +
+            p12 * (x2 - pos.x) * (pos.y - y1) +
+            p22 * (pos.x - x1) * (pos.y - y1)
+            ) / ((x2 - x1) * (y2 - y1));
+        
+        return Vector2(result, 0);
+    }else{
+        Vector2 v11 = q11->get("velocity");
+        Vector2 v12 = q12->get("velocity");
+        Vector2 v21 = q21->get("velocity");
+        Vector2 v22 = q22->get("velocity");
+
+        return (v11 * (x2 - pos.x) * (y2 - pos.y) +
+            v21 * (pos.x - x1) * (y2 - pos.y) +
+            v12 * (x2 - pos.x) * (pos.y - y1) +
+            v22 * (pos.x - x1) * (pos.y - y1)
+            ) / ((x2 - x1) * (y2 - y1));
+    }	    
 }

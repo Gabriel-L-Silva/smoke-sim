@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(32, 32)
+var squares_qtd 	= Vector2(64, 64)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -73,31 +73,14 @@ func _ready():
 	grid_vectors.push_back(back_list)
 	
 	$native_lib.vector_size = Vector2(squares_qtd.y+2, squares_qtd.x+2)
-	
-	print($native_lib.grid_size)
-	print($native_lib.tile_size)
-	print($native_lib.vector_size)
 
 func bilinear_interpolation_vel(pos):
-	var i = floor((pos.y-tile_size.y/2)/tile_size.y) + 1
-	var j = floor((pos.x-tile_size.x/2)/tile_size.x) + 1
-	
-	var q11 = grid_vectors[i][j]
-	var q12 = grid_vectors[i][j+1]
-	var q21 = grid_vectors[i+1][j]
-	var q22 = grid_vectors[i+1][j+1]
-	
-	var x1 = q11.pos.x
-	var y1 = q11.pos.y
-	
-	var x2 = x1 + tile_size.x
-	var y2 = y1 + tile_size.y
-	
-	return (q11.velocity * (x2 - pos.x) * (y2 - pos.y) +
-		q21.velocity * (pos.x - x1) * (y2 - pos.y) +
-		q12.velocity * (x2 - pos.x) * (pos.y - y1) +
-		q22.velocity * (pos.x - x1) * (pos.y - y1)
-		) / ((x2 - x1) * (y2 - y1))
+	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, false);
+	return result
+
+func bilinear_interpolation_press(pos):
+	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, true);
+	return result.x
 
 func add_particle():
 	var pos = get_global_mouse_position()

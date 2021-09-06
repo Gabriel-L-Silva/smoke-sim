@@ -34,7 +34,7 @@ func _draw():
 			var colors = PoolColorArray()
 			var uvs = PoolVector2Array()
 			for vert in verts:
-				colors.append(Color(1,1,1,grid.bilinear_interpolation_press(pos)/255.0))
+				colors.append(Color(1,1,1, grid.bilinear_interpolation_press(pos)/255.0))
 				uvs.append(Vector2(1,1))
 			draw_primitive(verts, colors, uvs)
 #			draw_rect(Rect2(position-grid.tile_size/2.0,grid.tile_size), Color(1,1,1,1))

@@ -47,6 +47,7 @@ public:
     void add_force(vector<vector<Vect>> &vectors, double delta, Vector2 force);
     void update_boundary(vector<vector<Vect>> &vectors);
     Vector2 bilinear_interpolation(vector<vector<Vect>> &vectors, int x, int y, bool pressure);
+    Vector2 bilinear_interpolation_grid(Array grid, Vector2 pos, bool pressure);
 };
 
 #endif
