@@ -17,6 +17,6 @@ func _process(delta):
 			grid.remove_child(self)
 			return
 			
-	vel = (2*vel + grid.bilinear_interpolation(position))/3.0
+	vel = grid.bilinear_interpolation_vel(position)
 	update_velocity()
 	position += vel * delta * speed

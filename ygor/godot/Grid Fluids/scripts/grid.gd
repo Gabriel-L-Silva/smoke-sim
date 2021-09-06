@@ -1,22 +1,35 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(10, 10)
+var squares_qtd 	= Vector2(32, 32)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var timer = 0.0
-var timer2 = 0.0
 
 var rho = 1.0
-var gravity = Vector2(0, -40) 
-var sub_steps = 50 #random value, maybe be lowered for performance improvement
+var gravity = Vector2(0, -100) 
+var sub_steps = 10 # random value, maybe be lowered for performance improvement
+var MAX_VELOCITY = 1000
 
 var Particle = preload("res://scenes/particle.tscn")
 var Vector = preload("res://scenes/vector.tscn")
 
 var grid_vectors = []
 var particles = []
+
+class VectorClass:
+	var pressure: float
+	var velocity: Vector2
+	var pos: Vector2
+	
+	func check_vel(m_val):
+		if velocity.x > m_val: velocity.x = m_val
+		if velocity.x < -m_val: velocity.x = -m_val
+	
+		if velocity.y > m_val: velocity.y = m_val
+		if velocity.y < -m_val: velocity.y = -m_val
+	
 
 func get_velocity(pos):
 	return Vector2(pos.x, pos.y)
@@ -25,11 +38,11 @@ func get_pressure(pos):
 	return (pos.x+pos.y)/100
 
 func copy_vector(obj):
-	var front = Vector.instance()
-	front.pressure = obj.pressure
-	front.velocity = obj.velocity
-	front.pos = obj.pos
-	return front
+	var vec = VectorClass.new()
+	vec.pressure = obj.pressure
+	vec.velocity = obj.velocity
+	vec.pos = obj.pos
+	return vec
 
 func copy_list(lista):
 	var new = []
@@ -76,7 +89,7 @@ func _ready():
 	grid_vectors.push_front(front_list)
 	grid_vectors.push_back(back_list)
 
-func bilinear_interpolation(pos):
+func bilinear_interpolation_vel(pos):
 	var i = floor((pos.y-tile_size.y/2)/tile_size.y) + 1
 	var j = floor((pos.x-tile_size.x/2)/tile_size.x) + 1
 	
@@ -95,6 +108,27 @@ func bilinear_interpolation(pos):
 		q21.velocity * (pos.x - x1) * (y2 - pos.y) +
 		q12.velocity * (x2 - pos.x) * (pos.y - y1) +
 		q22.velocity * (pos.x - x1) * (pos.y - y1)
+		) / ((x2 - x1) * (y2 - y1))
+
+func bilinear_interpolation_press(pos):	
+	var i = floor((pos.y-tile_size.y/2)/tile_size.y) + 1
+	var j = floor((pos.x-tile_size.x/2)/tile_size.x) + 1
+	
+	var q11 = grid_vectors[i][j]
+	var q12 = grid_vectors[i][j+1]
+	var q21 = grid_vectors[i+1][j]
+	var q22 = grid_vectors[i+1][j+1]
+	
+	var x1 = q11.pos.x
+	var y1 = q11.pos.y
+	
+	var x2 = x1 + tile_size.x
+	var y2 = y1 + tile_size.y
+	
+	return (q11.pressure * (x2 - pos.x) * (y2 - pos.y) +
+		q21.pressure * (pos.x - x1) * (y2 - pos.y) +
+		q12.pressure * (x2 - pos.x) * (pos.y - y1) +
+		q22.pressure * (pos.x - x1) * (pos.y - y1)
 		) / ((x2 - x1) * (y2 - y1))
 
 func add_particle():
@@ -137,28 +171,26 @@ func advect(w, timestep):
 			var pos = w[x][y].pos
 			var vel = w[x][y].velocity
 			for _s in range(sub_steps):
-				var check = s*vel
-				if pos.x-check.x < 0 or pos.y-check.y < 0 or pos.x-check.x > grid_size.x or pos.y-check.y > grid_size.y:
-					break
-				pos -= check
-				vel = bilinear_interpolation(pos)
-			w[x][y].velocity = vel
+				pos -= s*vel
+				if pos.x < 0: pos.x = 0
+				if pos.y < 0: pos.y = 0 
+				if pos.x > grid_size.x: pos.x = grid_size.x 
+				if pos.y > grid_size.y: pos.y = grid_size.y
+				vel = bilinear_interpolation_vel(pos) 
+			w[x][y].pressure = bilinear_interpolation_press(pos)
 
 func diffuse(_w):
 	pass #Passthrough function because smoke has no viscosity
 
 func poisson_solver(div, x0, tol):
-	var max_it = 5000
+	var max_it = 20
 
 	for _i in range(max_it):
 		var old = x0.duplicate(true)
-		for x in range(1, squares_qtd.y+1):
-			for y in range(1, squares_qtd.x+1):
-				x0[x][y] = 0.25*(x0[x+1][y] + x0[x-1][y] + x0[x][y+1] + x0[x][y-1] + div[x][y].pressure)
-		
 		var accum = 0.0
 		for x in range(1, squares_qtd.y+1):
 			for y in range(1, squares_qtd.x+1):
+				x0[x][y] = 0.25*(x0[x+1][y] + x0[x-1][y] + x0[x][y+1] + x0[x][y-1] + div[x][y].pressure)
 				accum += abs(old[x][y]-x0[x][y])
 		if accum < tol:
 			break
@@ -217,7 +249,7 @@ func project(w):
 	for x in range(1, squares_qtd.y+1):
 		for y in range(1, squares_qtd.x+1):
 			w[x][y].velocity -= grad_q[x][y]
-			w[x][y].check_vel()
+			w[x][y].check_vel(MAX_VELOCITY)
 			w[x][y].pressure = rho/(0.5*(tile_size.x+tile_size.y)) * q[x][y]
 
 func update_grid(new_field):
@@ -225,7 +257,7 @@ func update_grid(new_field):
 		for y in range(squares_qtd.x+2):
 			grid_vectors[x][y].pressure = new_field[x][y].pressure
 			grid_vectors[x][y].velocity = new_field[x][y].velocity
-			
+
 func update_field(delta):
 	var w = copy_grid(grid_vectors)
 	add_force(w, delta)
@@ -239,7 +271,6 @@ func update_field(delta):
 
 func _process(delta):
 	timer += delta
-	timer2 += delta
 	
 	if get_parent().interface_visible:
 		return
@@ -248,13 +279,8 @@ func _process(delta):
 		if timer >= 0.1:
 			add_particle()
 			timer = 0
-			
-#	if timer2 <= 0.14:
-#		return
-#
-#	timer2 = 0.0
 	
-	var new_field = update_field(delta/100.0)
+	var new_field = update_field(delta)
 	update_grid(new_field)
 
 func _on_interface_show_grid_signal():
