@@ -65,6 +65,7 @@ void GridFluids::update_grid(vector<vector<Vect>> &vectors, Array grid){
             Node* vec = aux[y];
             vec->set("pressure", vectors[x][y].pressure); 
             vec->set("velocity", vectors[x][y].vel);
+            vec->call("update");
         }
     }
 }
@@ -332,5 +333,7 @@ void GridFluids::update_particles(Array grid, Array particles, double delta)
             pos.y = grid_size.y - p_size.y;
 
         p->set("position", pos);
+
+        p->call("update");
     }
 }

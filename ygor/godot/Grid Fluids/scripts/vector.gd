@@ -12,9 +12,6 @@ func _ready():
 	position.y = pos.y - grid.tile_size.y
 	set_physics_process(false)
 
-func _process(delta):
-	update() 
-
 func _draw():
 	var l = velocity.length() / grid.MAX_VELOCITY
 	var c = Color.from_hsv(170/360.0, 1, l)
