@@ -74,7 +74,6 @@ func _draw():
 			var rb = lb + Vector2(grid.tile_size.x, 0)
 			var rt = rb + Vector2(0,grid.tile_size.y)
 			var verts = PoolVector2Array([lb, rb, rt, lt])
-<<<<<<< HEAD
 			var colors = PoolColorArray([Color(1,1,1, vertex_pressure[x][y].pressure),
 										 Color(1,1,1, vertex_pressure[x+1][y].pressure),
 										 Color(1,1,1, vertex_pressure[x+1][y+1].pressure),
@@ -96,16 +95,14 @@ func _draw():
 #				draw_circle(lt,3,Color(1,0,1))
 				print(' ')
 #			draw_rect(Rect2(position,grid.tile_size), Color(1,1,1,1), false, 1.0, true)
-=======
 #			var colors = PoolColorArray([Color(1,1,1,1),Color(1,0,1,1),Color(1,1,0,1),Color(1,0,0,1)])
-			var colors = PoolColorArray()
-			var uvs = PoolVector2Array()
-			for vert in verts:
-				colors.append(Color(1,1,1, grid.bilinear_interpolation_press(pos)/255.0))
-				uvs.append(Vector2(1,1))
-			draw_primitive(verts, colors, uvs)
+#			var colors = PoolColorArray()
+#			var uvs = PoolVector2Array()
+#			for vert in verts:
+#				colors.append(Color(1,1,1, grid.bilinear_interpolation_press(pos)/255.0))
+#				uvs.append(Vector2(1,1))
+#			draw_primitive(verts, colors, uvs)
 #			draw_rect(Rect2(position-grid.tile_size/2.0,grid.tile_size), Color(1,1,1,1))
->>>>>>> main
 #			draw_circle(position,1,Color(1,0,0,1))
 			
 #	# cols
