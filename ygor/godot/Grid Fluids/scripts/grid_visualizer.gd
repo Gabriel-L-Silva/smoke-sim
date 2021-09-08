@@ -84,7 +84,7 @@ func _draw():
 ##				colors.append(Color(1,1,1, vertex_pressure[x][y].pressure/255.0))
 #				uvs.append(Vector2(position.x/grid.grid_size.x, position.y/grid.grid_size.y))
 			draw_primitive(verts, colors, verts)
-			draw_string(dynamic_font, lb, "%.2f" %vertex_pressure[x][y].pressure,Color(1,1,0))
+			draw_string(dynamic_font, lb+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x][y].pressure,Color(1,1,0))
 			if(x==4 and y==4):
 #				draw_string(dynamic_font, rb, "%.2f" %vertex_pressure[x+1][y].pressure,Color(1,1,0))
 #				draw_string(dynamic_font, rt, "%.2f" %vertex_pressure[x+1][y+1].pressure,Color(1,1,0))
