@@ -1,14 +1,14 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(32, 32)
+var squares_qtd 	= Vector2(60, 60)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var timer = 0.0
 
 var rho = 1.0
-var gravity = Vector2(0, -10) 
+var gravity = Vector2(0, -9.81) 
 var sub_steps = 10 # random value, maybe be lowered for performance improvement
 var MAX_VELOCITY = 500
 
@@ -24,10 +24,10 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(0, 0)
+	return Vector2(_pos.x/10, _pos.y/10)
 
 func get_pressure(_pos):
-	return 100
+	return (_pos.x+_pos.y)/100
  
 func copy_vector(obj):
 	var vec = VectorClass.new()
@@ -100,12 +100,6 @@ func add_particle():
 func external_forces():
 	return gravity # + bouancy (+ mouse_reppelant_force)
 
-func update_grid_native(new_field):
-	for x in range(squares_qtd.y+2):
-		for y in range(squares_qtd.x+2):
-			grid_vectors[x][y].pressure = new_field[x][y][0]
-			grid_vectors[x][y].velocity = new_field[x][y][1]
-
 func _process(delta):
 	timer += delta
 	
@@ -117,8 +111,8 @@ func _process(delta):
 			add_particle()
 			timer = 0
 	
-	var new_field = $native_lib.update_field(delta, grid_vectors, external_forces())
-	update_grid_native(new_field)
+	$native_lib.update_field(delta, grid_vectors, external_forces())
+	$native_lib.update_particles(grid_vectors, particles, delta)
 	
 func _on_interface_show_grid_signal():
 	show_grid = not show_grid
