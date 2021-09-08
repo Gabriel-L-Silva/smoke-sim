@@ -48,6 +48,8 @@ public:
     void update_boundary(vector<vector<Vect>> &vectors);
     Vector2 bilinear_interpolation(vector<vector<Vect>> &vectors, Vector2 pos, bool pressure);
     Vector2 bilinear_interpolation_grid(Array grid, Vector2 pos, bool pressure);
+    Vector2 get_minmax_velocity(Array grid);
+    Vector2 get_minmax_pressure(Array grid);
 };
 
 #endif

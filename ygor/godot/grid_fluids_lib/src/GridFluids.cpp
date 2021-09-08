@@ -1,11 +1,13 @@
 #include "GridFluids.h"
-
+#include <algorithm>
 
 
 void GridFluids::_register_methods()
 {
     register_method("update_field", &GridFluids::update_field);
     register_method("bilinear_interpolation_grid", &GridFluids::bilinear_interpolation_grid);
+    register_method("get_minmax_pressure", &GridFluids::get_minmax_pressure);
+    register_method("get_minmax_velocity", &GridFluids::get_minmax_velocity);
     
     register_property<GridFluids, double>("max_speed", &GridFluids::maxSpeed, 1000.0);
     register_property<GridFluids, int>("max_iter_poisson", &GridFluids::maxIterPoisson, 20);
@@ -42,6 +44,48 @@ vector<vector<Vect>> copy_grid(Array grid)
     }
 
     return vectors;
+}
+
+//accesed at 08/09/21 11:51am https://stackoverflow.com/a/17299623
+template <typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
+    std::size_t total_size = 0;
+    for (const auto& sub : v)
+        total_size += sub.size(); // I wish there was a transform_accumulate
+    std::vector<T> result;
+    result.reserve(total_size);
+    for (const auto& sub : v)
+        result.insert(result.end(), sub.begin(), sub.end());
+    return result;
+}
+
+Vector2 GridFluids::get_minmax_velocity(Array grid)
+{
+    vector<vector<Vect>> vectors = copy_grid(grid);
+    auto flat = flatten(vectors);
+    const auto result = minmax_element(flat.begin(), flat.end(),
+        [](const Vect& a, const Vect& b)
+        {
+            return a.vel.length() < b.vel.length();
+        });
+    Vect min = *(result.first);
+    Vect max = *(result.second);
+
+    return Vector2(min.vel.length(), max.vel.length());
+}
+
+Vector2 GridFluids::get_minmax_pressure(Array grid)
+{
+    vector<vector<Vect>> vectors = copy_grid(grid);
+    auto flat = flatten(vectors);
+    const auto result = minmax_element(flat.begin(), flat.end(),
+        [](const Vect& a, const Vect& b)
+        {
+            return a.pressure < b.pressure;
+        });
+    Vect min = *(result.first);
+    Vect max = *(result.second);
+    return Vector2(min.pressure, max.pressure);
 }
 
 Array GridFluids::update_field(double delta, Array grid, Vector2 externalForces)
@@ -121,7 +165,7 @@ double GridFluids::divergent_at_point(int x, int y, vector<vector<Vect>> &vector
 {
 	double right = vectors[x][y+1].vel.x; 
 	double left = vectors[x][y-1].vel.x; 
-	double up = vectors[x+1][y].vel.y; 
+	double up = vectors[x+1][y].vel.y;
 	double down = vectors[x-1][y].vel.y;
 	
 	return -0.5 * tile_size.x * (right - left) + (up - down);

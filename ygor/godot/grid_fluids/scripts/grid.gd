@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(16, 16)
+var squares_qtd 	= Vector2(64, 64)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -27,7 +27,7 @@ func get_velocity(_pos):
 	return Vector2(1, 1)
 
 func get_pressure(_pos):
-	return 100.0
+	return _pos.length()
  
 func copy_vector(obj):
 	var vec = VectorClass.new()
@@ -85,6 +85,14 @@ func _ready():
 	grid_vectors[2][2].velocity.y = -1
 	
 	$native_lib.vector_size = Vector2(squares_qtd.y+2, squares_qtd.x+2)
+
+func get_minmax_velocity():
+	var result = $native_lib.get_minmax_velocity(grid_vectors);
+	return result
+	
+func get_minmax_pressure():
+	var result = $native_lib.get_minmax_pressure(grid_vectors);
+	return result
 
 func bilinear_interpolation_vel(pos):
 	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, false);

@@ -2,7 +2,6 @@ extends Node2D
 
 
 onready var grid = get_parent()
-onready var sprite = get_node("/Main/Sprite")
 var dynamic_font = DynamicFont.new()
 
 func _ready():
@@ -12,6 +11,10 @@ func _ready():
 func _process(delta):
 	update()
 
+func normalize(value, minmax):
+	return value
+#	return (value - minmax.x)/(minmax.y - minmax.x)
+	
 func _draw():
 	if not grid.show_grid:
 		return
@@ -58,13 +61,13 @@ func _draw():
 			var position = pos-grid.tile_size
 			var vec = grid.VectorClass.new()
 			vec.pressure = grid.bilinear_interpolation_press(position)
-			if(x==5 and y==5): 
-				vec.pressure = 255
+#			if(x==5 and y==5): 
+#				vec.pressure = 255
 			vec.pos = position
 			vertex_pressure[x-1].append(vec)
 #			draw_circle(position + 0.5*grid.tile_size, 1, Color(1,1,1,vec.pressure/255.0))
 	
-	
+	var minmax_presure = grid.get_minmax_pressure()
 	#da pra otimizar, esta calculando o mesmo ponto várias vezes
 	for x in range(vertex_pressure.size()-1):
 		for y in range(vertex_pressure[0].size()-1):
@@ -74,18 +77,18 @@ func _draw():
 			var rb = lb + Vector2(grid.tile_size.x, 0)
 			var rt = rb + Vector2(0,grid.tile_size.y)
 			var verts = PoolVector2Array([lb, rb, rt, lt])
-			var colors = PoolColorArray([Color(1,1,1, vertex_pressure[x][y].pressure),
-										 Color(1,1,1, vertex_pressure[x+1][y].pressure),
-										 Color(1,1,1, vertex_pressure[x+1][y+1].pressure),
-										 Color(1,1,1, vertex_pressure[x][y+1].pressure)])
+			var colors = PoolColorArray([Color(1,1,1, normalize(vertex_pressure[x][y].pressure, minmax_presure)),
+										 Color(1,1,1, normalize(vertex_pressure[x+1][y].pressure, minmax_presure)),
+										 Color(1,1,1, normalize(vertex_pressure[x+1][y+1].pressure, minmax_presure)),
+										 Color(1,1,1, normalize(vertex_pressure[x][y+1].pressure, minmax_presure))])
 ##			var colors = PoolColorArray()
 #			var uvs = PoolVector2Array()
 #			for vert in verts:
 ##				colors.append(Color(1,1,1, vertex_pressure[x][y].pressure/255.0))
 #				uvs.append(Vector2(position.x/grid.grid_size.x, position.y/grid.grid_size.y))
 			draw_primitive(verts, colors, verts)
-			draw_string(dynamic_font, lb+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x][y].pressure,Color(1,1,0))
-			if(x==4 and y==4):
+#			draw_string(dynamic_font, lb+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x][y].pressure,Color(1,1,0))
+#			if(x==4 and y==4):
 #				draw_string(dynamic_font, rb, "%.2f" %vertex_pressure[x+1][y].pressure,Color(1,1,0))
 #				draw_string(dynamic_font, rt, "%.2f" %vertex_pressure[x+1][y+1].pressure,Color(1,1,0))
 #				draw_string(dynamic_font, lt, "%.2f" %vertex_pressure[x][y+1].pressure,Color(1,1,0))
@@ -93,7 +96,7 @@ func _draw():
 #				draw_circle(rb,3,Color(0,1,0))
 #				draw_circle(rt,3,Color(0,0,1))
 #				draw_circle(lt,3,Color(1,0,1))
-				print(' ')
+#				print(' ')
 #			draw_rect(Rect2(position,grid.tile_size), Color(1,1,1,1), false, 1.0, true)
 #			var colors = PoolColorArray([Color(1,1,1,1),Color(1,0,1,1),Color(1,1,0,1),Color(1,0,0,1)])
 #			var colors = PoolColorArray()
