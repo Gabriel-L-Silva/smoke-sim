@@ -1,16 +1,16 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(64, 64)
+var squares_qtd 	= Vector2(16, 16)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var timer = 0.0
 
 var rho = 1.0
-var gravity = Vector2(0, -9.81) 
+var gravity = Vector2(0, -50) 
 var sub_steps = 10 # random value, maybe be lowered for performance improvement
-var MAX_VELOCITY = 1000
+var MAX_VELOCITY = 500
 
 var Particle = preload("res://scenes/particle.tscn")
 var Vector = preload("res://scenes/vector.tscn")
@@ -23,12 +23,12 @@ class VectorClass:
 	var velocity: Vector2
 	var pos: Vector2
 
-func get_velocity(pos):
-	return Vector2(pos.x/100, 0)
+func get_velocity(_pos):
+	return Vector2(1, 1)
 
-func get_pressure(pos):
-	return 1.0
-
+func get_pressure(_pos):
+	return 100.0
+ 
 func copy_vector(obj):
 	var vec = VectorClass.new()
 	vec.pressure = obj.pressure
@@ -44,7 +44,7 @@ func _ready():
 		grid_vectors.append([])
 		for y in range(squares_qtd.x):
 			# middle point
-			var pos = Vector2((y+1) * tile_size.x + tile_size.x/2, (x+1) * tile_size.y + tile_size.y/2)
+			var pos = Vector2((y+1) * tile_size.x + tile_size.x/2.0, (x+1) * tile_size.y + tile_size.y/2.0)
 			var vector = Vector.instance()
 			vector.pos = pos
 			vector.velocity = get_velocity(pos)
@@ -52,25 +52,37 @@ func _ready():
 			grid_vectors[x].append(vector)
 			$vector_visualizer.add_child(vector)
 		
+		# vertical
 		var front = copy_vector(grid_vectors[x][0])
 		var back = copy_vector(grid_vectors[x][-1])
-		front.pos.x = tile_size.x/2
+		front.pos.x = tile_size.x/2.0
+		front.velocity *= -1 
 		back.pos.x += tile_size.x
+		back.velocity *= -1
 		grid_vectors[x].push_front(front)
 		grid_vectors[x].push_back(back)
 	
+	# horizontal
 	var front_list = []
 	var back_list = []
-	for x in grid_vectors[0]:
-		var vec = copy_vector(x)
-		vec.pos.y = tile_size.y/2
+	for y in range(squares_qtd.x+2):
+		var vec = copy_vector(grid_vectors[0][y])
+		vec.pos.y = tile_size.y/2.0
+		if y > 0:
+			vec.velocity *= -1
 		front_list.append(vec)
-	for x in grid_vectors[-1]:
-		var vec = copy_vector(x)
+	for y in range(squares_qtd.x+2):
+		var vec = copy_vector(grid_vectors[-1][y])
 		vec.pos.y += tile_size.y
+		if y> 0:
+			vec.velocity *= -1
 		back_list.append(vec)
 	grid_vectors.push_front(front_list)
 	grid_vectors.push_back(back_list)
+	
+	grid_vectors[1][1].velocity.x = -1
+	grid_vectors[2][1].velocity *= -1
+	grid_vectors[2][2].velocity.y = -1
 	
 	$native_lib.vector_size = Vector2(squares_qtd.y+2, squares_qtd.x+2)
 
@@ -88,7 +100,6 @@ func add_particle():
 	new_particle.position = pos
 	particles.append(new_particle)
 	add_child(new_particle)
-	print('particle added')
 
 func external_forces():
 	return gravity # + bouancy (+ mouse_reppelant_force)
@@ -106,7 +117,7 @@ func _process(delta):
 		return
 	
 	if Input.is_action_pressed("left_click"):
-		if timer >= 0.1:
+		if timer >= 0.05:
 			add_particle()
 			timer = 0
 	
