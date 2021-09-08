@@ -89,7 +89,7 @@ Vector2 GridFluids::get_minmax_pressure(Array grid)
     return Vector2(min.pressure, max.pressure);
 }
 
-Array GridFluids::update_field(double delta, Array grid, Vector2 externalForces)
+void GridFluids::update_field(double delta, Array grid, Vector2 externalForces)
 {
     vector<vector<Vect>> vectors = copy_grid(grid);
 	add_force(vectors, delta, externalForces);
