@@ -1,10 +1,11 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(60, 60)
+var squares_qtd 	= Vector2(64, 64)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
+var show_pressure 	= false
 var timer = 0.0
 
 var rho = 1.0
@@ -90,8 +91,7 @@ func bilinear_interpolation_press(pos):
 	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, true);
 	return result.x
 
-func add_particle():
-	var pos = get_global_mouse_position()
+func add_particle(pos):
 	var new_particle = Particle.instance()
 	new_particle.position = pos
 	particles.append(new_particle)
@@ -103,13 +103,14 @@ func external_forces():
 func _process(delta):
 	timer += delta
 	
+	if Input.is_action_pressed("left_click"):
+		var pos = get_global_mouse_position()
+		if timer >= 0.05 and not get_parent().check_inter_col(pos):
+			add_particle(pos)
+			timer = 0
+	
 	if get_parent().interface_visible:
 		return
-	
-	if Input.is_action_pressed("left_click"):
-		if timer >= 0.05:
-			add_particle()
-			timer = 0
 	
 	$native_lib.update_field(delta, grid_vectors, external_forces())
 	$native_lib.update_particles(grid_vectors, particles, delta)
