@@ -91,7 +91,7 @@ void GridFluids::project(vector<vector<Vect>> &vectors)
             if (vectors[x][y].vel.y < -maxSpeed)
                 vectors[x][y].vel.y = -maxSpeed; 
 
-			vectors[x][y].pressure = rho/(0.5*(tile_size.x + tile_size.y)) * x0[x][y];
+			vectors[x][y].pressure = rho/(tile_size.x + tile_size.y) * x0[x][y];
         }
     }
 }
@@ -103,7 +103,7 @@ Vector2 GridFluids::gradient_at_point(int x, int y, vector<vector<double>> &grid
 	double up = grid[x+1][y];
 	double down = grid[x-1][y];
 	
-	return 0.5 * Vector2((right-left)/tile_size.x, (up-down)/tile_size.y);
+	return Vector2((right-left)/(tile_size.x+tile_size.y), (up-down)/(tile_size.x+tile_size.y));
 }
 
 vector<vector<Vector2>> GridFluids::gradient(vector<vector<double>> &grid)
@@ -124,7 +124,7 @@ double GridFluids::divergent_at_point(int x, int y, vector<vector<Vect>> &vector
 	double up = vectors[x+1][y].vel.y; 
 	double down = vectors[x-1][y].vel.y;
 	
-	return -0.5 * tile_size.x * (right - left) + (up - down);
+	return -1/(tile_size.x+tile_size.y) * ((right - left) + (up - down));
 }
 
 vector<vector<double>> GridFluids::divergent(vector<vector<Vect>> &vectors)
