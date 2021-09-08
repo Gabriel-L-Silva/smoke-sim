@@ -14,7 +14,7 @@ __meta__ = {
 "_edit_use_anchors_": true
 }
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="InterRect" type="ColorRect" parent="."]
 anchor_left = 1.0
 anchor_top = 0.5
 anchor_right = 1.0
@@ -27,7 +27,7 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ColorRect"]
+[node name="VBoxContainer" type="VBoxContainer" parent="InterRect"]
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -36,35 +36,31 @@ margin_left = -100.0
 margin_top = -90.0
 margin_right = 100.0
 margin_bottom = 90.0
-custom_constants/separation = 10
+custom_constants/separation = 15
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="show_grid" type="CheckBox" parent="ColorRect/VBoxContainer"]
+[node name="show_grid" type="CheckBox" parent="InterRect/VBoxContainer"]
 margin_right = 200.0
 margin_bottom = 24.0
 text = "Show Grid"
 
-[node name="show_vectors" type="CheckBox" parent="ColorRect/VBoxContainer"]
-margin_top = 34.0
+[node name="show_vectors" type="CheckBox" parent="InterRect/VBoxContainer"]
+margin_top = 39.0
 margin_right = 200.0
-margin_bottom = 58.0
+margin_bottom = 63.0
 text = "Show Vectors"
 
-[node name="play_btn" type="Button" parent="ColorRect/VBoxContainer"]
-margin_top = 68.0
+[node name="Grid_dim" type="Label" parent="InterRect/VBoxContainer"]
+margin_top = 78.0
 margin_right = 200.0
-margin_bottom = 88.0
-disabled = true
-text = "Play"
+margin_bottom = 92.0
 
-[node name="stop_btn" type="Button" parent="ColorRect/VBoxContainer"]
-margin_top = 98.0
+[node name="N_Particles" type="Label" parent="InterRect/VBoxContainer"]
+margin_top = 107.0
 margin_right = 200.0
-margin_bottom = 118.0
-disabled = true
-text = "Stop"
+margin_bottom = 121.0
 
-[connection signal="pressed" from="ColorRect/VBoxContainer/show_grid" to="." method="_on_show_grid_pressed"]
-[connection signal="pressed" from="ColorRect/VBoxContainer/show_vectors" to="." method="_on_show_vectors_pressed"]
+[connection signal="pressed" from="InterRect/VBoxContainer/show_grid" to="." method="_on_show_grid_pressed"]
+[connection signal="pressed" from="InterRect/VBoxContainer/show_vectors" to="." method="_on_show_vectors_pressed"]

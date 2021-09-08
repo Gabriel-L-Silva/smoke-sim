@@ -8,6 +8,7 @@ void GridFluids::_register_methods()
     register_method("bilinear_interpolation_grid", &GridFluids::bilinear_interpolation_grid);
     register_method("get_minmax_pressure", &GridFluids::get_minmax_pressure);
     register_method("get_minmax_velocity", &GridFluids::get_minmax_velocity);
+    register_method("update_particles", &GridFluids::update_particles);
     
     register_property<GridFluids, double>("max_speed", &GridFluids::maxSpeed, 1000.0);
     register_property<GridFluids, int>("max_iter_poisson", &GridFluids::maxIterPoisson, 20);
@@ -98,22 +99,18 @@ Array GridFluids::update_field(double delta, Array grid, Vector2 externalForces)
 	// diffuse(vectors);
 	project(vectors);
 	update_boundary(vectors);
-    return get_update_grid(vectors);
+    update_grid(vectors, grid);
 }
 
-Array GridFluids::get_update_grid(vector<vector<Vect>> &vectors){
-    Array grid_updated;
+void GridFluids::update_grid(vector<vector<Vect>> &vectors, Array grid){
     for (int x=0; x < vector_size.x; x++){
-        Array aux;
+        Array aux = grid[x];
 		for (int y=0; y < vector_size.y; y++){
-            Array aux2;
-            aux2.append(vectors[x][y].pressure);
-            aux2.append(vectors[x][y].vel);
-            aux.append(aux2);
+            Node* vec = aux[y];
+            vec->set("pressure", vectors[x][y].pressure); 
+            vec->set("velocity", vectors[x][y].vel);
         }
-        grid_updated.append(aux);
     }
-    return grid_updated;
 }
 
 void GridFluids::project(vector<vector<Vect>> &vectors)
@@ -135,7 +132,7 @@ void GridFluids::project(vector<vector<Vect>> &vectors)
             if (vectors[x][y].vel.y < -maxSpeed)
                 vectors[x][y].vel.y = -maxSpeed; 
 
-			vectors[x][y].pressure = rho/(0.5*(tile_size.x + tile_size.y)) * x0[x][y];
+			vectors[x][y].pressure = rho/(tile_size.x + tile_size.y) * x0[x][y];
         }
     }
 }
@@ -147,7 +144,7 @@ Vector2 GridFluids::gradient_at_point(int x, int y, vector<vector<double>> &grid
 	double up = grid[x+1][y];
 	double down = grid[x-1][y];
 	
-	return 0.5 * Vector2((right-left)/tile_size.x, (up-down)/tile_size.y);
+	return Vector2((right-left)/(tile_size.x+tile_size.y), (up-down)/(tile_size.x+tile_size.y));
 }
 
 vector<vector<Vector2>> GridFluids::gradient(vector<vector<double>> &grid)
@@ -168,7 +165,7 @@ double GridFluids::divergent_at_point(int x, int y, vector<vector<Vect>> &vector
 	double up = vectors[x+1][y].vel.y;
 	double down = vectors[x-1][y].vel.y;
 	
-	return -0.5 * tile_size.x * (right - left) + (up - down);
+	return -1/(tile_size.x+tile_size.y) * ((right - left) + (up - down));
 }
 
 vector<vector<double>> GridFluids::divergent(vector<vector<Vect>> &vectors)
@@ -237,20 +234,25 @@ void GridFluids::update_boundary(vector<vector<Vect>> &vectors)
 {
     // vertical
     for (int x = 0; x < vector_size.x; x++) {
-        vectors[x][0].vel = vectors[x][1].vel;
+        vectors[x][0].vel = -vectors[x][1].vel;
         vectors[x][0].pressure = vectors[x][1].pressure;
 
-        vectors[x][vector_size.y-1].vel = vectors[x][vector_size.y-2].vel;
+        vectors[x][vector_size.y-1].vel = -vectors[x][vector_size.y-2].vel;
         vectors[x][vector_size.y-1].pressure = vectors[x][vector_size.y-2].pressure;
     }
     
     // horizontal
     for (int y = 0; y < vector_size.y; y++) {
-        vectors[0][y].vel = vectors[1][y].vel;
+        int fact = -1;
+        
         vectors[0][y].pressure = vectors[1][y].pressure;
-
-        vectors[vector_size.x-1][y].vel = vectors[vector_size.x-2][y].vel;
         vectors[vector_size.x-1][y].pressure = vectors[vector_size.x-2][y].pressure;
+
+        if (y == 0)
+            fact = 1;
+
+        vectors[0][y].vel = vectors[1][y].vel * fact;
+        vectors[vector_size.x-1][y].vel = vectors[vector_size.x-2][y].vel * fact;
     }
 }
 
@@ -344,4 +346,35 @@ Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pr
             v22 * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
     }	    
+}
+
+void GridFluids::update_particles(Array grid, Array particles, double delta)
+{
+    for(int x = 0; x < particles.size(); x++){
+        Node* p = particles[x];
+        Vector2 pos = p->get("position");
+        double speed = p->get("speed");
+        Vector2 p_size = p->get("p_size");
+        
+        Node* p_particles = p->get_node("Particles2D");
+
+        Vector2 vel = bilinear_interpolation_grid(grid, pos, false);
+        p->set("vel", vel);
+        
+        auto s_speed = Vector3(-vel.x, -vel.y, 0) * speed;
+        p_particles->set_indexed("process_material:gravity", s_speed);
+        
+        pos += delta * vel * speed;
+
+        if (pos.x - p_size.x < 0) 
+            pos.x = p_size.x;
+        if (pos.x + p_size.x > grid_size.x) 
+            pos.x = grid_size.x - p_size.x;
+        if (pos.y - p_size.y < 0) 
+            pos.y = p_size.y;
+        if (pos.y + p_size.y > grid_size.y) 
+            pos.y = grid_size.y - p_size.y;
+
+        p->set("position", pos);
+    }
 }

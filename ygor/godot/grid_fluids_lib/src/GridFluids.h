@@ -35,8 +35,8 @@ public:
     void _init();
 
     // Functions 
-    Array update_field(double delta, Array grid, Vector2 externalForces);
-    Array get_update_grid(vector<vector<Vect>> &vectors);
+    void update_field(double delta, Array grid, Vector2 externalForces);
+    void update_grid(vector<vector<Vect>> &vectors, Array grid);
     void project(vector<vector<Vect>> &vectors);
     Vector2 gradient_at_point(int x, int y, vector<vector<double>> &grid);
     vector<vector<Vector2>> gradient(vector<vector<double>> &grid);
@@ -50,6 +50,7 @@ public:
     Vector2 bilinear_interpolation_grid(Array grid, Vector2 pos, bool pressure);
     Vector2 get_minmax_velocity(Array grid);
     Vector2 get_minmax_pressure(Array grid);
+    void update_particles(Array grid, Array particles, double delta);
 };
 
 #endif

@@ -7,13 +7,13 @@ var pos: Vector2
 
 onready var grid = get_parent().get_parent()
 
-func _process(delta):
-	update()
-
 func _ready():
 	position.x = pos.x - grid.tile_size.x
 	position.y = pos.y - grid.tile_size.y
 	set_physics_process(false)
+
+func _process(delta):
+	update() 
 
 func _draw():
 	var l = velocity.length() / grid.MAX_VELOCITY
