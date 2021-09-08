@@ -1,14 +1,14 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(16, 16)
+var squares_qtd 	= Vector2(64, 64)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var timer = 0.0
 
 var rho = 1.0
-var gravity = Vector2(0, -50) 
+var gravity = Vector2(0, -10) 
 var sub_steps = 10 # random value, maybe be lowered for performance improvement
 var MAX_VELOCITY = 500
 
@@ -24,7 +24,7 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(1, 1)
+	return Vector2(0, 0)
 
 func get_pressure(_pos):
 	return 100.0
@@ -74,15 +74,11 @@ func _ready():
 	for y in range(squares_qtd.x+2):
 		var vec = copy_vector(grid_vectors[-1][y])
 		vec.pos.y += tile_size.y
-		if y> 0:
+		if y>0:
 			vec.velocity *= -1
 		back_list.append(vec)
 	grid_vectors.push_front(front_list)
 	grid_vectors.push_back(back_list)
-	
-	grid_vectors[1][1].velocity.x = -1
-	grid_vectors[2][1].velocity *= -1
-	grid_vectors[2][2].velocity.y = -1
 	
 	$native_lib.vector_size = Vector2(squares_qtd.y+2, squares_qtd.x+2)
 

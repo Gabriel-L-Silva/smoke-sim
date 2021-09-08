@@ -193,20 +193,25 @@ void GridFluids::update_boundary(vector<vector<Vect>> &vectors)
 {
     // vertical
     for (int x = 0; x < vector_size.x; x++) {
-        vectors[x][0].vel = vectors[x][1].vel;
+        vectors[x][0].vel = -vectors[x][1].vel;
         vectors[x][0].pressure = vectors[x][1].pressure;
 
-        vectors[x][vector_size.y-1].vel = vectors[x][vector_size.y-2].vel;
+        vectors[x][vector_size.y-1].vel = -vectors[x][vector_size.y-2].vel;
         vectors[x][vector_size.y-1].pressure = vectors[x][vector_size.y-2].pressure;
     }
     
     // horizontal
     for (int y = 0; y < vector_size.y; y++) {
-        vectors[0][y].vel = vectors[1][y].vel;
+        int fact = -1;
+        
         vectors[0][y].pressure = vectors[1][y].pressure;
-
-        vectors[vector_size.x-1][y].vel = vectors[vector_size.x-2][y].vel;
         vectors[vector_size.x-1][y].pressure = vectors[vector_size.x-2][y].pressure;
+
+        if (y == 0)
+            fact = 1;
+
+        vectors[0][y].vel = vectors[1][y].vel * fact;
+        vectors[vector_size.x-1][y].vel = vectors[vector_size.x-2][y].vel * fact;
     }
 }
 
