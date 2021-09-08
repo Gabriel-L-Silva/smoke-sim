@@ -1,5 +1,3 @@
-#include <cmath>
-
 #include "GridFluids.h"
 
 
@@ -175,9 +173,9 @@ void GridFluids::advect(vector<vector<Vect>> &vectors, double timestep)
                     pos.x = grid_size.x;
 				if (pos.y > grid_size.y)
                     pos.y = grid_size.y;
-				vel = bilinear_interpolation(vectors, pos.x, pos.y, false);
+				vel = bilinear_interpolation(vectors, pos, false);
             }
-            Vector2 p = bilinear_interpolation(vectors, pos.x, pos.y, true);
+            Vector2 p = bilinear_interpolation(vectors, pos, true);
 			vectors[x][y].pressure = p.x;        }
     }
 }
@@ -212,43 +210,49 @@ void GridFluids::update_boundary(vector<vector<Vect>> &vectors)
     }
 }
 
-Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, int x, int y, bool pressure)
+Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, Vector2 pos, bool pressure)
 {
-    int i = floor( (y - tile_size.y / 2.0) / tile_size.y) + 1;
-	int j = floor( (x - tile_size.x / 2.0) / tile_size.x) + 1;
+    // top left
+    int i = floor( (pos.y - tile_size.y / 2.0) / tile_size.y) + 1;
+	int j = floor( (pos.x - tile_size.x / 2.0) / tile_size.x) + 1;
 	
-	Vect q11 = vectors[i][j];
-	Vect q12 = vectors[i][j+1];
-	Vect q21 = vectors[i+1][j];
-	Vect q22 = vectors[i+1][j+1];
+	Vect q11 = vectors[i+1][j];
+	Vect q12 = vectors[i][j];
+	Vect q21 = vectors[i+1][j+1];
+	Vect q22 = vectors[i][j+1];
 	
 	double x1 = q11.pos.x;
 	double y1 = q11.pos.y;
 	
-	double x2 = x1 + tile_size.x;
-	double y2 = y1 + tile_size.y;
+	double x2 = q22.pos.x;
+	double y2 = q22.pos.y;
 
     if (pressure){
-        double result = (q11.pressure * (x2 - x) * (y2 - y) +
-            q21.pressure * (x - x1) * (y2 - y) +
-            q12.pressure * (x2 - x) * (y - y1) +
-            q22.pressure * (x - x1) * (y - y1)
+        double result = (q11.pressure * (x2 - pos.x) * (y2 - pos.y) +
+            q12.pressure * (x2 - pos.x) * (pos.y - y1) +
+            q21.pressure * (pos.x - x1) * (y2 - pos.y) +
+            q22.pressure * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
         
         return Vector2(result, 0);
     }else{
-        return (q11.vel * (x2 - x) * (y2 - y) +
-            q21.vel * (x - x1) * (y2 - y) +
-            q12.vel * (x2 - x) * (y - y1) +
-            q22.vel * (x - x1) * (y - y1)
+        return (q11.vel * (x2 - pos.x) * (y2 - pos.y) +
+            q12.vel * (x2 - pos.x) * (pos.y - y1) +
+            q21.vel * (pos.x - x1) * (y2 - pos.y) +
+            q22.vel * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
     }	
 }
 
 Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pressure)
 {
-    int i = floor( (pos.y - tile_size.y / 2.0) / tile_size.y) + 1;
-	int j = floor( (pos.x - tile_size.x / 2.0) / tile_size.x) + 1;
+    // top left
+    int i = (pos.y - tile_size.y/2.0)/tile_size.y + 1;
+	int j = (pos.x - tile_size.x/2.0)/tile_size.x + 1;
+
+    pos += tile_size;
+
+    Array t;
 
     Array aux;
     Array aux2;
@@ -256,17 +260,20 @@ Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pr
     aux = grid[i];
     aux2 = grid[i+1];
 
-    Object* q11 = aux[j];
-	Object* q12 = aux[j+1];
+    Object* q11 = aux2[j];
+	Object* q12 = aux[j];
 
-	Object* q21 = aux2[j];
-	Object* q22 = aux2[j+1];
+	Object* q21 = aux2[j+1];
+	Object* q22 = aux[j+1];
+
+    Vector2 q11_pos = q11->get("pos");
+    Vector2 q22_pos = q22->get("pos");
+
+	double x1 = q11_pos.x;
+	double y1 = q11_pos.y;
 	
-	double x1 = q11->get("pos.x");
-	double y1 = q11->get("pos.y");
-	
-	double x2 = x1 + tile_size.x;
-	double y2 = y1 + tile_size.y;
+	double x2 = q22_pos.x;
+	double y2 = q22_pos.y;
 
     if (pressure){
         double p11 = q11->get("pressure");
@@ -275,8 +282,8 @@ Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pr
         double p22 = q22->get("pressure");
 
         double result = (p11 * (x2 - pos.x) * (y2 - pos.y) +
-            p21 * (pos.x - x1) * (y2 - pos.y) +
             p12 * (x2 - pos.x) * (pos.y - y1) +
+            p21 * (pos.x - x1) * (y2 - pos.y) +
             p22 * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
         
@@ -288,8 +295,8 @@ Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pr
         Vector2 v22 = q22->get("velocity");
 
         return (v11 * (x2 - pos.x) * (y2 - pos.y) +
-            v21 * (pos.x - x1) * (y2 - pos.y) +
             v12 * (x2 - pos.x) * (pos.y - y1) +
+            v21 * (pos.x - x1) * (y2 - pos.y) +
             v22 * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
     }	    
