@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(64, 64)
+var squares_qtd 	= Vector2(32, 32)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -25,10 +25,10 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(_pos.x/10, _pos.y/10)
+	return Vector2(_pos.x/1280, -_pos.y/720)
 
 func get_pressure(_pos):
-	return _pos.length()
+	return (_pos.x+_pos.y)/100 if _pos.x > grid_size.x/2-tile_size.x*2 and _pos.y > grid_size.y/2-tile_size.y*2 and _pos.x < grid_size.x/2+tile_size.x*2 and _pos.y < grid_size.y/2+tile_size.y*2 else 0
  
 func copy_vector(obj):
 	var vec = VectorClass.new()

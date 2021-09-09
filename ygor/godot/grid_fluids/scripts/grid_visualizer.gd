@@ -12,7 +12,7 @@ func _process(delta):
 	update()
 
 func normalize(value, minmax):
-	return value
+	return value/minmax.y
 #	return (value - minmax.x)/(minmax.y - minmax.x)
 	
 func _draw():
@@ -78,20 +78,20 @@ func _draw():
 			var rt = rb + Vector2(0,grid.tile_size.y)
 			var verts = PoolVector2Array([lb, rb, rt, lt])
 			var colors = PoolColorArray([Color(1,1,1, normalize(vertex_pressure[x][y].pressure, minmax_presure)),
-										 Color(1,1,1, normalize(vertex_pressure[x+1][y].pressure, minmax_presure)),
+										 Color(1,1,1, normalize(vertex_pressure[x][y+1].pressure, minmax_presure)),
 										 Color(1,1,1, normalize(vertex_pressure[x+1][y+1].pressure, minmax_presure)),
-										 Color(1,1,1, normalize(vertex_pressure[x][y+1].pressure, minmax_presure))])
+										 Color(1,1,1, normalize(vertex_pressure[x+1][y].pressure, minmax_presure))])
 ##			var colors = PoolColorArray()
 #			var uvs = PoolVector2Array()
 #			for vert in verts:
 ##				colors.append(Color(1,1,1, vertex_pressure[x][y].pressure/255.0))
 #				uvs.append(Vector2(position.x/grid.grid_size.x, position.y/grid.grid_size.y))
+			
 			draw_primitive(verts, colors, verts)
-#			draw_string(dynamic_font, lb+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x][y].pressure,Color(1,1,0))
-#			if(x==4 and y==4):
-#				draw_string(dynamic_font, rb, "%.2f" %vertex_pressure[x+1][y].pressure,Color(1,1,0))
-#				draw_string(dynamic_font, rt, "%.2f" %vertex_pressure[x+1][y+1].pressure,Color(1,1,0))
-#				draw_string(dynamic_font, lt, "%.2f" %vertex_pressure[x][y+1].pressure,Color(1,1,0))
+#			draw_string(dynamic_font, lb+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x][y].pressure,Color(0,1,0))
+#			draw_string(dynamic_font, rb+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x][y+1].pressure,Color(0,1,0))
+#			draw_string(dynamic_font, rt+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x+1][y+1].pressure,Color(0,1,0))
+#			draw_string(dynamic_font, lt+Vector2(0,dynamic_font.size), "%.2f" %vertex_pressure[x][y+1].pressure,Color(0,1,0))
 #				draw_circle(lb,3,Color(1,0,0))
 #				draw_circle(rb,3,Color(0,1,0))
 #				draw_circle(rt,3,Color(0,0,1))

@@ -17,7 +17,7 @@ func _process(delta):
 
 func _draw():
 	var l = velocity.length() / grid.MAX_VELOCITY
-	var c = Color.from_hsv(170/360.0, 1, l)
+	var c = Color.from_hsv(170/360.0, l, 1)
 
 	$Sprite.modulate = c
 	$Sprite.rotation = velocity.angle() + PI/2
