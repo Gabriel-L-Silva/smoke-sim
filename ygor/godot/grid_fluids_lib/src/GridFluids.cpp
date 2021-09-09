@@ -234,6 +234,17 @@ void GridFluids::advect(vector<vector<Vect>> &vectors, double timestep)
     }
 }
 
+Vector2 GridFluids::buoyancy(int i, int j)
+{
+    if (j*tile_size.y >= grid_size.y/4 - 2*tile_size.y &&
+        j*tile_size.y <= grid_size.y/4 + 2*tile_size.y )
+        return Vector2(0, -20);
+    if (j*tile_size.y >= 3*grid_size.y/4 - 2*tile_size.y &&
+        j*tile_size.y <= 3*grid_size.y/4 + 2*tile_size.y )
+        return Vector2(0, -20);
+    return Vector2(0,0);
+}
+
 Vector2 GridFluids::mouse_repellent(int i, int j, Vector2 pos)
 {
     Vector2 force = Vector2(0, 0);
@@ -253,7 +264,7 @@ void GridFluids::add_force(vector<vector<Vect>> &vectors, double delta, Vector2 
 {   
     for(int i=1; i < vector_size.x-1; i++){
         for (int j=1; j < vector_size.y-1; j++){
-            vectors[i][j].vel += delta * (force + mouse_repellent(i, j, vectors[i][j].pos));
+            vectors[i][j].vel += delta * (force + buoyancy(i, j) + mouse_repellent(i, j, vectors[i][j].pos));
         }
     }
 }

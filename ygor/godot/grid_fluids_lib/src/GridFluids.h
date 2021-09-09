@@ -54,6 +54,7 @@ public:
     void update_particles(Array grid, Array particles, double delta);
     double check_divfree(vector<vector<Vect>>& vectors);
     Vector2 mouse_repellent(int i, int j, Vector2 pos);
+    Vector2 buoyancy(int i, int j);
 };
 
 #endif

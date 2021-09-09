@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(64, 64)
+var squares_qtd 	= Vector2(32, 32)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -27,7 +27,7 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(pow(_pos.y-grid_size.y/2.0,3)-9*(_pos.y-grid_size.y/2.0), pow(_pos.x-grid_size.x/2.0,3)-9*(_pos.x-grid_size.x/2.0))/100000
+	return Vector2(pow(_pos.y-grid_size.y/2.0,3)-9*(_pos.y-grid_size.y/2.0), pow(_pos.x-grid_size.x/2.0,3)-9*(_pos.x-grid_size.x/2.0))/1000000
 #	return Vector2(cos(_pos.x+_pos.y), sin(_pos.x*_pos.y))
 #	return Vector2(-_pos.y-grid_size.y/2, _pos.x-grid_size.x/2)
 
