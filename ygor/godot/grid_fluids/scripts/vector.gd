@@ -17,6 +17,7 @@ func _process(delta):
 	update()
 
 func normalize(value):
+	# from 0.5 to 1 source: https://stats.stackexchange.com/a/281164
 	return (value - grid.minmax_vel.x)/(grid.minmax_vel.y - grid.minmax_vel.x) * 0.5 + 0.5
 
 func _draw():
