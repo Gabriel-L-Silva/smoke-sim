@@ -14,7 +14,7 @@ func check_inter_col(pos):
 	return $interface/InterRect.get_rect().has_point(pos)
 
 func _ready():
-	var t1 = "Grid Dim: " + str($Grid.squares_qtd.y) + "X" + str($Grid.squares_qtd.x)
+	var t1 = "Grid Dim: " + str($Grid.grid_size.x) + "X" + str($Grid.grid_size.y)
 	$interface.set_grid_dim_label(t1)
 
 func _process(delta):

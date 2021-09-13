@@ -145,6 +145,10 @@ func _on_interface_show_grid_signal():
 	show_grid = not show_grid
 	$grid_visualizer.update()
 
+func _on_interface_show_pressure_signal():
+	show_pressure = not show_pressure
+	$pressure_visualizer.update()
+
 func _on_interface_show_vectors_signal():
 	show_vectors = not show_vectors
 	if show_vectors:
