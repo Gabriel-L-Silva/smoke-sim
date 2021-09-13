@@ -1,15 +1,17 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(64, 64)
+var squares_qtd 	= Vector2(32, 32)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var show_pressure 	= false
 var timer = 0.0
+var mouse_inside = true
+var minmax_vel = Vector2(0,1)
 
 var rho = 1.0
-var gravity = Vector2(0, -9.81) 
+var gravity = Vector2(0, 9.81) 
 var sub_steps = 10 # random value, maybe be lowered for performance improvement
 var MAX_VELOCITY = 500
 
@@ -25,11 +27,14 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(_pos.x/10, _pos.y/10)
+	return Vector2(pow(_pos.y-grid_size.y/2.0,3)-9*(_pos.y-grid_size.y/2.0), pow(_pos.x-grid_size.x/2.0,3)-9*(_pos.x-grid_size.x/2.0))/1000000
+#	return Vector2(cos(_pos.x+_pos.y), sin(_pos.x*_pos.y))
+#	return Vector2(-_pos.y-grid_size.y/2, _pos.x-grid_size.x/2)
 
 func get_pressure(_pos):
-	return (_pos.x+_pos.y)/100
- 
+	return (_pos.x+_pos.y)/100 if _pos.x >= grid_size.x/2-2*tile_size.x and _pos.y >= grid_size.y/2-2*tile_size.y and _pos.x <= grid_size.x/2+2*tile_size.x and _pos.y <= grid_size.y/2+2*tile_size.y else 0
+#	return (_pos.x/1280/2+_pos.y/720/2)
+
 func copy_vector(obj):
 	var vec = VectorClass.new()
 	vec.pressure = obj.pressure
@@ -82,6 +87,24 @@ func _ready():
 	grid_vectors.push_back(back_list)
 	
 	$native_lib.vector_size = Vector2(squares_qtd.y+2, squares_qtd.x+2)
+	minmax_vel = get_minmax_velocity()
+
+func _notification(what):
+	match what:
+		MainLoop.NOTIFICATION_WM_MOUSE_EXIT:
+#			print("Mouse has left game window")
+			mouse_inside = false
+		MainLoop.NOTIFICATION_WM_MOUSE_ENTER:
+#			print("Mouse has entered the game window")
+			mouse_inside = true
+
+func get_minmax_velocity():
+	var result = $native_lib.get_minmax_velocity(grid_vectors);
+	return result
+	
+func get_minmax_pressure():
+	var result = $native_lib.get_minmax_pressure(grid_vectors);
+	return result
 
 func bilinear_interpolation_vel(pos):
 	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, false);
@@ -103,8 +126,8 @@ func external_forces():
 func _process(delta):
 	timer += delta
 	
+	var pos = get_global_mouse_position()
 	if Input.is_action_pressed("left_click"):
-		var pos = get_global_mouse_position()
 		if timer >= 0.05 and not get_parent().check_inter_col(pos):
 			add_particle(pos)
 			timer = 0
@@ -112,9 +135,12 @@ func _process(delta):
 	if get_parent().interface_visible:
 		return
 	
-	$native_lib.update_field(delta, grid_vectors, external_forces())
+	$native_lib.mouse_pos = pos if mouse_inside else Vector2(-1,-1)
+	var check = $native_lib.update_field(delta, grid_vectors, external_forces())
+	print(check)
 	$native_lib.update_particles(grid_vectors, particles, delta)
-	
+	minmax_vel = get_minmax_velocity()
+
 func _on_interface_show_grid_signal():
 	show_grid = not show_grid
 	$grid_visualizer.update()

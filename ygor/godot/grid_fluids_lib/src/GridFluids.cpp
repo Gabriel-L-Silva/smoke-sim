@@ -1,11 +1,13 @@
 #include "GridFluids.h"
-
+#include <algorithm>
 
 
 void GridFluids::_register_methods()
 {
     register_method("update_field", &GridFluids::update_field);
     register_method("bilinear_interpolation_grid", &GridFluids::bilinear_interpolation_grid);
+    register_method("get_minmax_pressure", &GridFluids::get_minmax_pressure);
+    register_method("get_minmax_velocity", &GridFluids::get_minmax_velocity);
     register_method("update_particles", &GridFluids::update_particles);
     
     register_property<GridFluids, double>("max_speed", &GridFluids::maxSpeed, 1000.0);
@@ -15,6 +17,7 @@ void GridFluids::_register_methods()
     register_property<GridFluids, Vector2>("tile_size", &GridFluids::tile_size, Vector2(1, 1));
     register_property<GridFluids, Vector2>("grid_size", &GridFluids::grid_size, Vector2(800, 800));
     register_property<GridFluids, Vector2>("vector_size", &GridFluids::vector_size, Vector2(0, 0));
+    register_property<GridFluids, Vector2>("mouse_pos", &GridFluids::mouse_pos, Vector2(1, 1));
 }
 
 void GridFluids::_init()
@@ -45,7 +48,60 @@ vector<vector<Vect>> copy_grid(Array grid)
     return vectors;
 }
 
-void GridFluids::update_field(double delta, Array grid, Vector2 externalForces)
+//accesed at 08/09/21 11:51am https://stackoverflow.com/a/17299623
+template <typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
+    std::size_t total_size = 0;
+    for (const auto& sub : v)
+        total_size += sub.size(); // I wish there was a transform_accumulate
+    std::vector<T> result;
+    result.reserve(total_size);
+    for (const auto& sub : v)
+        result.insert(result.end(), sub.begin(), sub.end());
+    return result;
+}
+
+Vector2 GridFluids::get_minmax_velocity(Array grid)
+{
+    vector<vector<Vect>> vectors = copy_grid(grid);
+    auto flat = flatten(vectors);
+    const auto result = minmax_element(flat.begin(), flat.end(),
+        [](const Vect& a, const Vect& b)
+        {
+            return a.vel.length() < b.vel.length();
+        });
+    Vect min = *(result.first);
+    Vect max = *(result.second);
+
+    return Vector2(min.vel.length(), max.vel.length());
+}
+
+Vector2 GridFluids::get_minmax_pressure(Array grid)
+{
+    vector<vector<Vect>> vectors = copy_grid(grid);
+    auto flat = flatten(vectors);
+    const auto result = minmax_element(flat.begin(), flat.end(),
+        [](const Vect& a, const Vect& b)
+        {
+            return a.pressure < b.pressure;
+        });
+    Vect min = *(result.first);
+    Vect max = *(result.second);
+    return Vector2(min.pressure, max.pressure);
+}
+
+double GridFluids::check_divfree(vector<vector<Vect>>& vectors)
+{
+    auto accum = 0.0;
+    for (int x = 1; x < vector_size.x - 1; x++) {
+        for (int y = 1; y < vector_size.y - 1; y++) {
+            accum += GridFluids::divergent_at_point(x, y, vectors);
+        }
+    }
+    return accum;
+}
+
+double GridFluids::update_field(double delta, Array grid, Vector2 externalForces)
 {
     vector<vector<Vect>> vectors = copy_grid(grid);
 	add_force(vectors, delta, externalForces);
@@ -56,6 +112,7 @@ void GridFluids::update_field(double delta, Array grid, Vector2 externalForces)
 	project(vectors);
 	update_boundary(vectors);
     update_grid(vectors, grid);
+    return check_divfree(vectors);
 }
 
 void GridFluids::update_grid(vector<vector<Vect>> &vectors, Array grid){
@@ -80,14 +137,14 @@ void GridFluids::project(vector<vector<Vect>> &vectors)
 		for (int y=1; y < vector_size.y-1; y++){
 			vectors[x][y].vel -= grad_q[x][y];
 
-            if(vectors[x][y].vel.x > maxSpeed) 
+            /*if(vectors[x][y].vel.x > maxSpeed) 
                 vectors[x][y].vel.x = maxSpeed; 
             if (vectors[x][y].vel.x < -maxSpeed)
                 vectors[x][y].vel.x = -maxSpeed;
             if (vectors[x][y].vel.y > maxSpeed)
                 vectors[x][y].vel.y = maxSpeed; 
             if (vectors[x][y].vel.y < -maxSpeed)
-                vectors[x][y].vel.y = -maxSpeed; 
+                vectors[x][y].vel.y = -maxSpeed; */
 
 			vectors[x][y].pressure = rho/(tile_size.x + tile_size.y) * x0[x][y];
         }
@@ -119,7 +176,7 @@ double GridFluids::divergent_at_point(int x, int y, vector<vector<Vect>> &vector
 {
 	double right = vectors[x][y+1].vel.x; 
 	double left = vectors[x][y-1].vel.x; 
-	double up = vectors[x+1][y].vel.y; 
+	double up = vectors[x+1][y].vel.y;
 	double down = vectors[x-1][y].vel.y;
 	
 	return -1/(tile_size.x+tile_size.y) * ((right - left) + (up - down));
@@ -178,11 +235,37 @@ void GridFluids::advect(vector<vector<Vect>> &vectors, double timestep)
     }
 }
 
+Vector2 GridFluids::buoyancy(int i, int j)
+{
+    if (j*tile_size.y >= grid_size.y/4 - 2*tile_size.y &&
+        j*tile_size.y <= grid_size.y/4 + 2*tile_size.y )
+        return Vector2(0, -20);
+    if (j*tile_size.y >= 3*grid_size.y/4 - 2*tile_size.y &&
+        j*tile_size.y <= 3*grid_size.y/4 + 2*tile_size.y )
+        return Vector2(0, -20);
+    return Vector2(0,0);
+}
+
+Vector2 GridFluids::mouse_repellent(int i, int j, Vector2 pos)
+{
+    Vector2 force = Vector2(0, 0);
+    if (mouse_pos.x >= 0 && mouse_pos.y >= 0)
+    {
+        int mouse_i = floor((pos.y - tile_size.y / 2.0) / tile_size.y) + 1;
+        int mouse_j = floor((pos.x - tile_size.x / 2.0) / tile_size.x) + 1;
+        if (mouse_i >= i-1 && mouse_j >= j-1 && mouse_i <= i+1 && mouse_j <= j+1)
+        {
+            Vector2 f = mouse_pos - pos;
+            force = 10*f/f.length();
+        }
+    }
+    return force;
+}
 void GridFluids::add_force(vector<vector<Vect>> &vectors, double delta, Vector2 force)
 {   
     for(int i=1; i < vector_size.x-1; i++){
         for (int j=1; j < vector_size.y-1; j++){
-            vectors[i][j].vel += delta * force;
+            vectors[i][j].vel += delta * (force + buoyancy(i, j) + mouse_repellent(i, j, vectors[i][j].pos));
         }
     }
 }

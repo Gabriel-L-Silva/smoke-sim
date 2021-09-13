@@ -29,13 +29,14 @@ class GridFluids: public Node2D
     Vector2 tile_size = Vector2(1, 1);
     Vector2 grid_size = Vector2(800, 800);
     Vector2 vector_size = Vector2(0, 0);
+    Vector2 mouse_pos = Vector2(1, 1);
 
 public:
     static void _register_methods();
     void _init();
 
     // Functions 
-    void update_field(double delta, Array grid, Vector2 externalForces);
+    double update_field(double delta, Array grid, Vector2 externalForces);
     void update_grid(vector<vector<Vect>> &vectors, Array grid);
     void project(vector<vector<Vect>> &vectors);
     Vector2 gradient_at_point(int x, int y, vector<vector<double>> &grid);
@@ -48,7 +49,12 @@ public:
     void update_boundary(vector<vector<Vect>> &vectors);
     Vector2 bilinear_interpolation(vector<vector<Vect>> &vectors, Vector2 pos, bool pressure);
     Vector2 bilinear_interpolation_grid(Array grid, Vector2 pos, bool pressure);
+    Vector2 get_minmax_velocity(Array grid);
+    Vector2 get_minmax_pressure(Array grid);
     void update_particles(Array grid, Array particles, double delta);
+    double check_divfree(vector<vector<Vect>>& vectors);
+    Vector2 mouse_repellent(int i, int j, Vector2 pos);
+    Vector2 buoyancy(int i, int j);
 };
 
 #endif
