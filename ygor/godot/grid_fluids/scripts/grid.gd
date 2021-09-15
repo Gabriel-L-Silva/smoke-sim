@@ -137,7 +137,6 @@ func _process(delta):
 	
 	$native_lib.mouse_pos = pos if mouse_inside else Vector2(-1,-1)
 	var check = $native_lib.update_field(delta, grid_vectors, external_forces())
-	print(check)
 	$native_lib.update_particles(grid_vectors, particles, delta)
 	minmax_vel = get_minmax_velocity()
 

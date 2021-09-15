@@ -11,7 +11,7 @@ func _input(event):
 		interface_visible = not interface_visible
 
 func check_inter_col(pos):
-	return $interface/InterRect.get_rect().has_point(pos)
+	return ($interface/InterRect.get_rect().has_point(pos) and interface_visible)
 
 func _ready():
 	var t1 = "Grid Dim: " + str($Grid.squares_qtd.y) + "X" + str($Grid.squares_qtd.x)
