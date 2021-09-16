@@ -6,6 +6,7 @@ var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var show_pressure 	= false
+var show_density 	= false
 var timer = 0.0
 var mouse_inside = true
 var minmax_vel = Vector2(0,1)
@@ -23,6 +24,7 @@ var particles = []
 
 class VectorClass:
 	var pressure: float
+	var density: float
 	var velocity: Vector2
 	var pos: Vector2
 
@@ -35,9 +37,14 @@ func get_pressure(_pos):
 	return (_pos.x+_pos.y)/100 if _pos.x >= grid_size.x/2-2*tile_size.x and _pos.y >= grid_size.y/2-2*tile_size.y and _pos.x <= grid_size.x/2+2*tile_size.x and _pos.y <= grid_size.y/2+2*tile_size.y else 0
 #	return (_pos.x/1280/2+_pos.y/720/2)
 
+func get_density(_pos):
+	return 0.5 if _pos.x >= grid_size.x/2-2*tile_size.x and _pos.y >= grid_size.y/2-2*tile_size.y and _pos.x <= grid_size.x/2+2*tile_size.x and _pos.y <= grid_size.y/2+2*tile_size.y else 0.0
+#	return 1
+
 func copy_vector(obj):
 	var vec = VectorClass.new()
 	vec.pressure = obj.pressure
+	vec.density = obj.density
 	vec.velocity = obj.velocity
 	vec.pos = obj.pos
 	return vec
@@ -54,7 +61,8 @@ func _ready():
 			var vector = Vector.instance()
 			vector.pos = pos
 			vector.velocity = get_velocity(pos)
-			vector.pressure = get_pressure(pos) 
+			vector.pressure = get_pressure(pos)
+			vector.density = get_density(pos)
 			grid_vectors[x].append(vector)
 			$vector_visualizer.add_child(vector)
 		
@@ -114,6 +122,10 @@ func bilinear_interpolation_press(pos):
 	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, true);
 	return result.x
 
+func bilinear_interpolation_density(pos):
+	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, true);
+	return result.y
+
 func add_particle(pos):
 	var new_particle = Particle.instance()
 	new_particle.position = pos
@@ -155,3 +167,7 @@ func _on_interface_show_vectors_signal():
 		$vector_visualizer.show()
 	else:
 		$vector_visualizer.hide()
+
+func _on_interface_show_density_signal():
+	show_density = not show_density
+	$density_visualizer.update()

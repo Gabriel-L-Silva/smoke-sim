@@ -12,6 +12,7 @@ using namespace godot;
 class Vect{
 public:
     double pressure;
+    double density;
     Vector2 pos;
     Vector2 vel;
 };
@@ -39,6 +40,7 @@ public:
     double update_field(double delta, Array grid, Vector2 externalForces);
     void update_grid(vector<vector<Vect>> &vectors, Array grid);
     void project(vector<vector<Vect>> &vectors);
+    void diffuse(vector<vector<Vect>> &vectors, vector<vector<double>> &x0, double delta, double diff);
     Vector2 gradient_at_point(int x, int y, vector<vector<double>> &grid);
     vector<vector<Vector2>> gradient(vector<vector<double>> &grid);
     double divergent_at_point(int x, int y, vector<vector<Vect>> &vectors);

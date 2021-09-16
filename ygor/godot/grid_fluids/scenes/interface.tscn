@@ -58,16 +58,23 @@ margin_right = 200.0
 margin_bottom = 102.0
 text = "Show Pressure"
 
-[node name="Grid_dim" type="Label" parent="InterRect/VBoxContainer"]
+[node name="show_density" type="CheckBox" parent="InterRect/VBoxContainer"]
 margin_top = 117.0
 margin_right = 200.0
-margin_bottom = 131.0
+margin_bottom = 141.0
+text = "Show Density"
+
+[node name="Grid_dim" type="Label" parent="InterRect/VBoxContainer"]
+margin_top = 156.0
+margin_right = 200.0
+margin_bottom = 170.0
 
 [node name="N_Particles" type="Label" parent="InterRect/VBoxContainer"]
-margin_top = 146.0
+margin_top = 185.0
 margin_right = 200.0
-margin_bottom = 160.0
+margin_bottom = 199.0
 
 [connection signal="pressed" from="InterRect/VBoxContainer/show_grid" to="." method="_on_show_grid_pressed"]
 [connection signal="pressed" from="InterRect/VBoxContainer/show_vectors" to="." method="_on_show_vectors_pressed"]
 [connection signal="pressed" from="InterRect/VBoxContainer/show_pressure" to="." method="_on_show_pressure_pressed"]
+[connection signal="pressed" from="InterRect/VBoxContainer/show_density" to="." method="_on_show_density_pressed"]

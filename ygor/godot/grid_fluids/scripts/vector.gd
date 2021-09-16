@@ -3,6 +3,7 @@ extends Node2D
 
 var velocity: Vector2
 var pressure: float
+var density: float
 var pos: Vector2
 
 onready var grid = get_parent().get_parent()
