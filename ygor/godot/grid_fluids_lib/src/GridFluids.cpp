@@ -331,7 +331,7 @@ void GridFluids::add_force(vector<vector<Vect>> &vectors, double delta, Vector2 
         for (int j=1; j < vector_size.y-1; j++){
             vectors[i][j].vel += delta * force;//(force + buoyancy(i, j) + mouse_repellent(i, j, vectors[i][j].pos));
             // vectors[i][j].density += i*tile_size.x >= grid_size.x/2-3*tile_size.x & j*tile_size.y >= grid_size.y/2-3*tile_size.y & i*tile_size.x <= grid_size.x/2+3*tile_size.x & j*tile_size.y <= grid_size.y/2+3*tile_size.y ? delta : 0.0;
-            vectors[i][j].density += i==24 & j == 24 ? 100*delta : 0.0;
+            vectors[i][j].density += i==20 & j == 20 ? 100*delta : 0.0;
             vectors[i][j].density = vectors[i][j].density > 1 ? 1 : vectors[i][j].density;
         }
     }

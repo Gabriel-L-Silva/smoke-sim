@@ -12,8 +12,8 @@ var mouse_inside = true
 var minmax_vel = Vector2(0,1)
 
 var rho = 1.0
-var gravity = Vector2(0, 9.81) 
-var sub_steps = 1 # random value, maybe be lowered for performance improvement
+var gravity = Vector2(0, 0) 
+var sub_steps = 10 # random value, maybe be lowered for performance improvement
 var MAX_VELOCITY = 500
 
 var Particle = preload("res://scenes/particle.tscn")
@@ -29,9 +29,9 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(-pow(_pos.y-grid_size.y/2.0,3)-9*(_pos.y-grid_size.y/2.0), -pow(_pos.x-grid_size.x/2.0,3)-9*(_pos.x-grid_size.x/2.0))/10000
+#	return Vector2(-pow(_pos.y-grid_size.y/2.0,3)-9*(_pos.y-grid_size.y/2.0), -pow(_pos.x-grid_size.x/2.0,3)-9*(_pos.x-grid_size.x/2.0))/100000
 #	return Vector2(cos(_pos.x+_pos.y), sin(_pos.x*_pos.y))*100
-#	return Vector2(-_pos.y+grid_size.y/2, _pos.x-grid_size.x/2)
+	return Vector2(-_pos.y+grid_size.y/2, _pos.x-grid_size.x/2)
 #   return _pos
 #	return Vector2(10,10)
 
