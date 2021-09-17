@@ -19,7 +19,7 @@ func _process(delta):
 
 func normalize(value):
 	# from 0.5 to 1 source: https://stats.stackexchange.com/a/281164
-	return (value - grid.minmax_vel.x)/(grid.minmax_vel.y - grid.minmax_vel.x) * 0.5 + 0.5
+	return (value - grid.minmax_vel.x)/(grid.minmax_vel.y - grid.minmax_vel.x) * 0.5 + 0.5 if grid.minmax_vel.x != grid.minmax_vel.y else 1
 
 func _draw():
 	var l = normalize(velocity.length())

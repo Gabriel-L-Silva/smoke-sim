@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(32, 32)
+var squares_qtd 	= Vector2(64,64)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -13,7 +13,7 @@ var minmax_vel = Vector2(0,1)
 
 var rho = 1.0
 var gravity = Vector2(0, 9.81) 
-var sub_steps = 10 # random value, maybe be lowered for performance improvement
+var sub_steps = 1 # random value, maybe be lowered for performance improvement
 var MAX_VELOCITY = 500
 
 var Particle = preload("res://scenes/particle.tscn")
@@ -29,16 +29,20 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(pow(_pos.y-grid_size.y/2.0,3)-9*(_pos.y-grid_size.y/2.0), pow(_pos.x-grid_size.x/2.0,3)-9*(_pos.x-grid_size.x/2.0))/1000000
-#	return Vector2(cos(_pos.x+_pos.y), sin(_pos.x*_pos.y))
-#	return Vector2(-_pos.y-grid_size.y/2, _pos.x-grid_size.x/2)
+	return Vector2(-pow(_pos.y-grid_size.y/2.0,3)-9*(_pos.y-grid_size.y/2.0), -pow(_pos.x-grid_size.x/2.0,3)-9*(_pos.x-grid_size.x/2.0))/10000
+#	return Vector2(cos(_pos.x+_pos.y), sin(_pos.x*_pos.y))*100
+#	return Vector2(-_pos.y+grid_size.y/2, _pos.x-grid_size.x/2)
+#   return _pos
+#	return Vector2(10,10)
 
 func get_pressure(_pos):
 	return (_pos.x+_pos.y)/100 if _pos.x >= grid_size.x/2-2*tile_size.x and _pos.y >= grid_size.y/2-2*tile_size.y and _pos.x <= grid_size.x/2+2*tile_size.x and _pos.y <= grid_size.y/2+2*tile_size.y else 0
 #	return (_pos.x/1280/2+_pos.y/720/2)
 
 func get_density(_pos):
-	return 0.5 if _pos.x >= grid_size.x/2-2*tile_size.x and _pos.y >= grid_size.y/2-2*tile_size.y and _pos.x <= grid_size.x/2+2*tile_size.x and _pos.y <= grid_size.y/2+2*tile_size.y else 0.0
+#	return 1 if _pos.x >= grid_size.x - tile_size.x else 0 
+#	return 1 if _pos.x >= grid_size.x/2-2*tile_size.x and _pos.y >= grid_size.y/2-2*tile_size.y and _pos.x <= grid_size.x/2+2*tile_size.x and _pos.y <= grid_size.y/2+2*tile_size.y else 0.0
+	return 1 if _pos.x >= grid_size.x/2-3*tile_size.x and _pos.y >= grid_size.y/2-3*tile_size.y and _pos.x <= grid_size.x/2+3*tile_size.x and _pos.y <= grid_size.y/2+3*tile_size.y else 0.0
 #	return 1
 
 func copy_vector(obj):
@@ -137,7 +141,7 @@ func external_forces():
 
 func _process(delta):
 	timer += delta
-	
+#	OS.delay_msec(300)
 	var pos = get_global_mouse_position()
 	if Input.is_action_pressed("left_click"):
 		if timer >= 0.05 and not get_parent().check_inter_col(pos):
@@ -145,11 +149,11 @@ func _process(delta):
 			timer = 0
 	
 	if get_parent().interface_visible:
-		return
+		return 
 	
 	$native_lib.mouse_pos = pos if mouse_inside else Vector2(-1,-1)
 	var check = $native_lib.update_field(delta, grid_vectors, external_forces())
-	print(check)
+#	print(check)
 	$native_lib.update_particles(grid_vectors, particles, delta)
 	minmax_vel = get_minmax_velocity()
 

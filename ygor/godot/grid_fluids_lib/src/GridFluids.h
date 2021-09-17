@@ -4,6 +4,8 @@
 #include <Godot.hpp>
 #include <Node2D.hpp>
 #include <vector>
+#include <algorithm>
+#include <iostream>
 
 
 using namespace std;
@@ -40,7 +42,7 @@ public:
     double update_field(double delta, Array grid, Vector2 externalForces);
     void update_grid(vector<vector<Vect>> &vectors, Array grid);
     void project(vector<vector<Vect>> &vectors);
-    void diffuse(vector<vector<Vect>> &vectors, vector<vector<double>> &x0, double delta, double diff);
+    void diffuse(vector<vector<Vect>> &vectors, double delta, double diff);
     Vector2 gradient_at_point(int x, int y, vector<vector<double>> &grid);
     vector<vector<Vector2>> gradient(vector<vector<double>> &grid);
     double divergent_at_point(int x, int y, vector<vector<Vect>> &vectors);
@@ -57,6 +59,7 @@ public:
     double check_divfree(vector<vector<Vect>>& vectors);
     Vector2 mouse_repellent(int i, int j, Vector2 pos);
     Vector2 buoyancy(int i, int j);
+    void get_prev_dens(vector<vector<Vect>> &vectors, vector<vector<double>> &x0);
 };
 
 #endif
