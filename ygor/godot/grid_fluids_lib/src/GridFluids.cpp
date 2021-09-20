@@ -319,8 +319,9 @@ Vector2 GridFluids::mouse_repellent(int i, int j, Vector2 pos)
         int mouse_j = floor((pos.x - tile_size.x / 2.0) / tile_size.x) + 1;
         if (mouse_i >= i-1 && mouse_j >= j-1 && mouse_i <= i+1 && mouse_j <= j+1)
         {
-            Vector2 f = mouse_pos - pos;
-            force = 10*f/f.length();
+            force = pos- mouse_pos;
+            // Vector2 f = mouse_pos - pos;
+            // force = 10*f/f.length();
         }
     }
     return force;
@@ -329,7 +330,7 @@ void GridFluids::add_force(vector<vector<Vect>> &vectors, double delta, Vector2 
 {   
     for(int i=1; i < vector_size.x-1; i++){
         for (int j=1; j < vector_size.y-1; j++){
-            vectors[i][j].vel += delta * force;//(force + buoyancy(i, j) + mouse_repellent(i, j, vectors[i][j].pos));
+            vectors[i][j].vel = (mouse_pos.x >= 0 && mouse_pos.y >= 0) ? mouse_repellent(i, j, vectors[i][j].pos) : vectors[i][j].vel;//(force + buoyancy(i, j) + mouse_repellent(i, j, vectors[i][j].pos));
             // vectors[i][j].density += i*tile_size.x >= grid_size.x/2-3*tile_size.x & j*tile_size.y >= grid_size.y/2-3*tile_size.y & i*tile_size.x <= grid_size.x/2+3*tile_size.x & j*tile_size.y <= grid_size.y/2+3*tile_size.y ? delta : 0.0;
             vectors[i][j].density += i==20 & j == 20 ? 100*delta : 0.0;
             vectors[i][j].density = vectors[i][j].density > 1 ? 1 : vectors[i][j].density;
