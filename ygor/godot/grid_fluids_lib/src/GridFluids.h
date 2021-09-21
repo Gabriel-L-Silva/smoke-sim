@@ -4,6 +4,7 @@
 #include <Godot.hpp>
 #include <Node2D.hpp>
 #include <vector>
+#include <cmath>
 
 
 using namespace std;

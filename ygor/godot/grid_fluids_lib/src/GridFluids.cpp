@@ -84,7 +84,7 @@ vector<vector<double>> GridFluids::get_old_pressure(vector<vector<Vect>> &vector
 void GridFluids::project(vector<vector<Vect>> &vectors)
 {
     vector<vector<double>> x0 = get_old_pressure(vectors);
-	
+
 	poisson_solver(divergent(vectors), x0, 10e-5);
 	vector<vector<Vector2>> grad_q = gradient(x0);
 	for (int x=1; x < vector_size.x-1; x++){
@@ -168,7 +168,7 @@ void GridFluids::advect(vector<vector<Vect>> &vectors, double timestep)
 {
     double s = timestep/subSteps;
 
-    auto old_vector = vectors;
+    vector<vector<Vect>> old_vector = vectors;
 
     for (int x=1; x < vector_size.x-1; x++){
 		for (int y=1; y < vector_size.y-1; y++){    
@@ -276,12 +276,19 @@ void GridFluids::update_particles(vector<vector<Vect>> &vectors, Array particles
         Node* p_particles = p->get_node("Particles2D");
 
         Vector2 vel = bilinear_interpolation(vectors, position, false);
-        p->set("velocity", vel);
+        double pressure = bilinear_interpolation(vectors, position, true).x;
 
-        auto s_speed = Vector3(-vel.x, -vel.y, 0) * speed;
+        if (pressure < 0)
+            pressure *= -1;
+
+        vel *=  sqrt(2.0 * pressure / rho);
+
+        // p->set("vel", vel);
+
+        Vector3 s_speed = Vector3(-vel.x, -vel.y, 0) * speed;
         p_particles->set_indexed("process_material:gravity", s_speed);
 
-        position += delta*vel;
+        position += delta * vel * speed;
         if (position.x < 0 + p_size.x)
             position.x = p_size.x;
         if (position.x > grid_size.x - p_size.x)

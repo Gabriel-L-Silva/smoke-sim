@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(32, 32)
+var squares_qtd 	= Vector2(64, 64)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -28,7 +28,7 @@ func get_velocity(_pos):
 	return Vector2(_pos.x, _pos.y)/100
 
 func get_pressure(_pos):
-	return (_pos.x+_pos.y)/50
+	return 10 #(_pos.x+_pos.y)/100
 
 func copy_vector(obj):
 	var vec = VectorClass.new()
@@ -41,6 +41,7 @@ func _ready():
 	$native_lib.tile_size = tile_size
 	$native_lib.grid_size = grid_size
 	$native_lib.max_speed = MAX_VELOCITY
+	$native_lib.rho_const = rho
 	
 	for x in range(squares_qtd.y):
 		grid_vectors.append([])
@@ -85,17 +86,53 @@ func _ready():
 	$native_lib.vector_size = Vector2(squares_qtd.y+2, squares_qtd.x+2)
 
 func add_particle(pos):
+	if pos.x < 0 or pos.x > grid_size.x or pos.y < 0 or pos.y > grid_size.y:
+		return
+		
 	var new_particle = Particle.instance()
 	new_particle.position = pos
 	particles.append(new_particle)
 	add_child(new_particle)
 
 func external_forces():
-	return gravity # + bouancy (+ mouse_reppelant_force)
+	var force = gravity
 	
+	if Input.is_action_pressed("ui_left"):
+		force += Vector2(-50, 0)
+	if Input.is_action_pressed("ui_right"):
+		force += Vector2(50, 0)
+	if Input.is_action_pressed("ui_up"):
+		force += Vector2(0, -50)
+	if Input.is_action_pressed("ui_down"):
+		force += Vector2(0, 50)
+	
+	return force
+	
+func add_mouse_repel(pos, delta):
+	if pos.x < 0 or pos.x > grid_size.x or pos.y < 0 or pos.y > grid_size.y:
+		return
+	
+	var i = floor( pos.y / tile_size.y) + 1;
+	var j = floor( pos.x / tile_size.x) + 1;
+	
+	if i == squares_qtd.x:
+		i -= 1
+	if j == squares_qtd.y:
+		j -= 1
+	
+	grid_vectors[i][j].velocity     += Vector2(-25, 0) * delta
+	grid_vectors[i+1][j].velocity   += Vector2(-25, 0) * delta
+	grid_vectors[i][j+1].velocity   += Vector2(25, 0) * delta
+	grid_vectors[i+1][j+1].velocity += Vector2(25, 0) * delta
+	
+	grid_vectors[i][j].update()
+	grid_vectors[i+1][j].update()
+	grid_vectors[i][j+1].update()
+	grid_vectors[i+1][j+1].update()
+
+
 func _process(delta):
 	timer += delta
-	var mouse_repel = Vector2(0, 0)
 	
 	if Input.is_action_pressed("left_click"):
 		var pos = get_global_mouse_position()
@@ -103,17 +140,14 @@ func _process(delta):
 			add_particle(pos)
 			timer = 0
 	
-	if Input.is_action_just_pressed("right_click"):
-		mouse_pos = get_global_mouse_position()
-	
-	if Input.is_action_just_released("right_click"):
+	if Input.is_action_pressed("right_click"):
 		var pos = get_global_mouse_position()
-		mouse_repel = pos - mouse_pos
+		add_mouse_repel(pos, delta)
 	
 	if get_parent().interface_visible:
 		return
 	
-	$native_lib.update_field(delta, grid_vectors, particles, external_forces() + mouse_repel)
+	$native_lib.update_field(delta, grid_vectors, particles, external_forces())
 
 
 func _on_interface_show_grid_signal():
