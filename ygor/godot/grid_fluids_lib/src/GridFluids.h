@@ -57,9 +57,12 @@ public:
     Vector2 get_minmax_pressure(Array grid);
     void update_particles(Array grid, Array particles, double delta);
     double check_divfree(vector<vector<Vect>>& vectors);
-    Vector2 mouse_repellent(int i, int j, Vector2 pos);
+    Vector2 mouse_repellent(int i, int j, Vector2 pos, Vector2 vel);
     Vector2 buoyancy(int i, int j);
     void get_prev_dens(vector<vector<Vect>> &vectors, vector<vector<double>> &x0);
+    Array get_density_primitive_vertex(Array);
+    Array get_density_primitive_colors(Array);
+    Array get_density_primitive(Array);
 };
 
 #endif

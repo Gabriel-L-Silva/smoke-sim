@@ -110,6 +110,18 @@ func _notification(what):
 #			print("Mouse has entered the game window")
 			mouse_inside = true
 
+func get_density_primitive():
+	var result = $native_lib.get_density_primitive(grid_vectors);
+	return result
+
+func get_density_primitive_vertex():
+	var result = $native_lib.get_density_primitive_vertex(grid_vectors);
+	return result
+
+func get_density_primitive_colors():
+	var result = $native_lib.get_density_primitive_colors(grid_vectors);
+	return result
+
 func get_minmax_velocity():
 	var result = $native_lib.get_minmax_velocity(grid_vectors);
 	return result
@@ -154,7 +166,7 @@ func _process(delta):
 	$native_lib.mouse_pos = pos if mouse_inside else Vector2(-1,-1)
 	var check = $native_lib.update_field(delta, grid_vectors, external_forces())
 #	print(check)
-	$native_lib.update_particles(grid_vectors, particles, delta)
+#	$native_lib.update_particles(grid_vectors, particles, delta)
 	minmax_vel = get_minmax_velocity()
 
 func _on_interface_show_grid_signal():
