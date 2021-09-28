@@ -422,24 +422,16 @@ Vector2 GridFluids::buoyancy(int i, int j)
 }
 
 Vector2 GridFluids::mouse_repellent(int j, int i, Vector2 pos, Vector2 vel)
-{
-    //TODO: força aplicada em todas as células no caminho
-    
+{    
     int mouse_i = floor(mouse_pos.x / tile_size.x) + 1;
     int mouse_j = floor(mouse_pos.y / tile_size.y) + 1;
-    // if (mouse_pos.x >= (i-2)*tile_size.x && mouse_pos.y >= (j-2)*tile_size.y && mouse_pos.x <= (i+2)*tile_size.x && mouse_pos.y <= (j+2)*tile_size.y)
-    // if (mouse_i >= i-1 && mouse_j >= j-1 && mouse_i <= i+1 && mouse_j <= j+1)
-    // {
-    // cout << mouse_i << ", " << mouse_j <<endl;
+
     if(i>=mouse_i-1 && i<=mouse_i+1 && j>=mouse_j-1 && j<=mouse_j+1)
+    // if(i==mouse_i && j==mouse_j)
     {
-        auto force =force_const * (mouse_pos - prev_mouse_pos);
-        return force.length() != 0? force : vel;
+        vel += force_const * (mouse_pos - prev_mouse_pos);
     }
-        // force = 100*f/f.length();
-        // force += vel;
-    // }
-    // return pos-mouse_pos;
+
     return vel;
 }
 

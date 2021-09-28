@@ -18,7 +18,8 @@ func _ready():
 
 # warning-ignore:unused_argument
 func _process(delta):
-	update()
+	if grid.show_vectors:
+		update()
 
 func normalize(value):
 	# from 0.5 to 1 source: https://stats.stackexchange.com/a/281164

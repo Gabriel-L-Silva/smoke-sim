@@ -15,7 +15,7 @@ var rho = 1.0
 var diff = 0
 var gravity = Vector2(0, 0) 
 var sub_steps = 1 # random value, maybe be lowered for performance improvement
-var force = 10
+var force = 100
 var source = 5
 var MAX_VELOCITY = 500
 
@@ -50,7 +50,7 @@ func get_pressure(_pos):
 func get_density(_pos):
 #	return 1 if _pos.x >= grid_size.x - tile_size.x else 0 
 #	return 1 if _pos.x >= grid_size.x/2-2*tile_size.x and _pos.y >= grid_size.y/2-2*tile_size.y and _pos.x <= grid_size.x/2+2*tile_size.x and _pos.y <= grid_size.y/2+2*tile_size.y else 0.0
-	return 1 if _pos.x >= grid_size.x/2-5*tile_size.x and _pos.y >= grid_size.y/2-5*tile_size.y and _pos.x <= grid_size.x/2+5*tile_size.x and _pos.y <= grid_size.y/2+5*tile_size.y else 0.0
+	return 0.5 if _pos.x >= grid_size.x/2-5*tile_size.x and _pos.y >= grid_size.y/2-5*tile_size.y and _pos.x <= grid_size.x/2+5*tile_size.x and _pos.y <= grid_size.y/2+5*tile_size.y else 0.0
 #	return 0
 
 func copy_vector(obj):
@@ -187,8 +187,8 @@ func _process(delta):
 	var check = $native_lib.update_field(delta, grid_vectors, external_forces())
 #	print(check)
 	$native_lib.prev_mouse_pos = pos
-#	if show_vectors:
-	minmax_vel = get_minmax_velocity()
+	if show_vectors:
+		minmax_vel = get_minmax_velocity()
 
 func _on_interface_show_grid_signal():
 	show_grid = not show_grid
