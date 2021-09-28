@@ -9,7 +9,9 @@ func _ready():
 
 func normalize(value, minmax):
 #	return value/minmax.y
-	return (value - minmax.x)/(minmax.y - minmax.x)
+	if (minmax.y - minmax.x) != 0:
+		return (value - minmax.x)/(minmax.y - minmax.x)
+	return 0
 
 func _process(delta):
 	update()

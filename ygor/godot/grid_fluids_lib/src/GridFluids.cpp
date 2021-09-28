@@ -15,11 +15,16 @@ void GridFluids::_register_methods()
     register_property<GridFluids, double>("max_speed", &GridFluids::maxSpeed, 1000.0);
     register_property<GridFluids, int>("max_iter_poisson", &GridFluids::maxIterPoisson, 20);
     register_property<GridFluids, int>("num_sub_steps", &GridFluids::subSteps, 10);
-    register_property<GridFluids, double>("rho_const", &GridFluids::rho, 1.0);
+    register_property<GridFluids, double>("rho_const", &GridFluids::rho_const, 1.0);
+    register_property<GridFluids, double>("diff_const", &GridFluids::diff_const, 0);
+    register_property<GridFluids, double>("force_const", &GridFluids::force_const, 2.0);
+    register_property<GridFluids, double>("source_const", &GridFluids::source_const, 2.0);
     register_property<GridFluids, Vector2>("tile_size", &GridFluids::tile_size, Vector2(1, 1));
     register_property<GridFluids, Vector2>("grid_size", &GridFluids::grid_size, Vector2(800, 800));
     register_property<GridFluids, Vector2>("vector_size", &GridFluids::vector_size, Vector2(0, 0));
     register_property<GridFluids, Vector2>("mouse_pos", &GridFluids::mouse_pos, Vector2(1, 1));
+    register_property<GridFluids, Vector2>("prev_mouse_pos", &GridFluids::prev_mouse_pos, Vector2(-1, -1));
+    register_property<GridFluids, Vector2>("source_pos", &GridFluids::source_pos, Vector2(-1,-1));
 }
 
 void GridFluids::_init()
@@ -177,8 +182,8 @@ double GridFluids::update_field(double delta, Array grid, Vector2 externalForces
     vector<vector<Vect>> vectors = copy_grid(grid);
 	add_force(vectors, delta, externalForces);
 	update_boundary(vectors);
-	// diffuse(vectors, delta, 0.0001);// TODO: pass diff as parameter
-	// update_boundary(vectors);
+	diffuse(vectors, delta, diff_const);
+	update_boundary(vectors);
 	advect(vectors, delta);
 	update_boundary(vectors);
 	project(vectors);
@@ -201,42 +206,74 @@ void GridFluids::update_grid(vector<vector<Vect>> &vectors, Array grid){
     }
 }
 
-void GridFluids::get_prev_dens(vector<vector<Vect>> &vectors, vector<vector<double>> &x0)
+void GridFluids::get_prev_grid(vector<vector<Vect>> &vectors, vector<vector<tuple<double,double,double,double>>> &x0)
 {
+    /*
+        0 velx
+        1 vely
+        2 press
+        3 dens
+    */
     for (int x=0; x < vector_size.x; x++){
 		for (int y=0; y < vector_size.y; y++){
-			x0[x][y] = vectors[x][y].density;
+            std::get<0>(x0[x][y]) = vectors[x][y].vel.x;
+            std::get<1>(x0[x][y]) = vectors[x][y].vel.y;
+            std::get<2>(x0[x][y]) = vectors[x][y].pressure;
+			std::get<3>(x0[x][y]) = vectors[x][y].density;
         }
     }
 }
 
 void GridFluids::diffuse(vector<vector<Vect>> &vectors, double delta, double diff)
 {
-    vector<vector<double>> x0(vector_size.x, vector<double> (vector_size.y, 0));
+    vector<vector<tuple<double,double,double,double>>> x0(vector_size.x, vector<tuple<double,double,double,double>> (vector_size.y, make_tuple(0,0,0,0)));
 
-    get_prev_dens(vectors, x0);
+    get_prev_grid(vectors, x0);
 
-    float a = delta * diff * grid_size.x * grid_size.y-2;
+    double a = (double)(delta * diff * int(vector_size.x-2.0) * int(vector_size.y-2.0));
     for (int i=0; i < maxIterPoisson; i++){
-		vector<vector<double>> old = x0;
+		auto old = x0;
 		for (int x=1; x < vector_size.x-1; x++){
 			for (int y=1; y < vector_size.y-1; y++){
-				x0[x][y] = (old[x][y] + a*(old[x+1][y] + old[x-1][y] + old[x][y+1] + old[x][y-1]))/(1+4*a);
+                auto vel = Vector2(std::get<0>(old[x][y]), std::get<1>(old[x][y]));
+                auto velip1 = Vector2(std::get<0>(old[x+1][y]), std::get<1>(old[x+1][y]));
+                auto velim1 = Vector2(std::get<0>(old[x-1][y]), std::get<1>(old[x-1][y]));
+                auto veljp1 = Vector2(std::get<0>(old[x][y+1]), std::get<1>(old[x][y+1]));
+                auto veljm1 = Vector2(std::get<0>(old[x][y-1]), std::get<1>(old[x][y-1]));
+
+				vel = (vel + a*(velip1 + velim1 + veljp1 + veljm1))/(1+4*a);
+
+                std::get<0>(x0[x][y]) = vel.x;
+                std::get<1>(x0[x][y]) = vel.y;
+
+                auto dens = std::get<3>(old[x][y]);
+                auto densip1 = std::get<3>(old[x+1][y]);
+                auto densim1 = std::get<3>(old[x-1][y]);
+                auto densjp1 = std::get<3>(old[x][y+1]);
+                auto densjm1 = std::get<3>(old[x][y-1]);
+
+                dens = (dens + a*(densip1 + densim1 + densjp1 + densjm1))/(1+4*a);
+                std::get<3>(x0[x][y]) = dens;
             }
         }
     }
 
     for (int x=1; x < vector_size.x-1; x++){
 		for (int y=1; y < vector_size.y-1; y++){
-            vectors[x][y].density = x0[x][y];
+            vectors[x][y].vel.x = std::get<0>(x0[x][y]);
+            vectors[x][y].vel.y = std::get<1>(x0[x][y]);
+            vectors[x][y].pressure = std::get<2>(x0[x][y]);
+            vectors[x][y].density = std::get<3>(x0[x][y]);
         }
     }
 }
 
 void GridFluids::project(vector<vector<Vect>> &vectors)
 {
-    vector<vector<double>> x0(vector_size.x, vector<double> (vector_size.y, 0));
-	
+    vector<vector<tuple<double,double,double,double>>> x0(vector_size.x, vector<tuple<double,double,double,double>> (vector_size.y, make_tuple(0,0,0,0)));
+
+    get_prev_grid(vectors, x0);
+
 	poisson_solver(divergent(vectors), x0, 10e-5);
 	vector<vector<Vector2>> grad_q = gradient(x0);
 	for (int x=1; x < vector_size.x-1; x++){
@@ -252,22 +289,22 @@ void GridFluids::project(vector<vector<Vect>> &vectors)
             if (vectors[x][y].vel.y < -maxSpeed)
                 vectors[x][y].vel.y = -maxSpeed; */
 
-			vectors[x][y].pressure = rho/(tile_size.x + tile_size.y) * x0[x][y];
+			vectors[x][y].pressure = rho_const/(tile_size.x + tile_size.y) * std::get<2>(x0[x][y]);
         }
     }
 }
 
-Vector2 GridFluids::gradient_at_point(int x, int y, vector<vector<double>> &grid)
+Vector2 GridFluids::gradient_at_point(int x, int y, vector<vector<tuple<double,double,double,double>>> &grid)
 {
-	double right = grid[x][y+1];
-	double left = grid[x][y-1];
-	double up = grid[x+1][y];
-	double down = grid[x-1][y];
+	double right = std::get<2>(grid[x][y+1]);
+	double left = std::get<2>(grid[x][y-1]);
+	double up = std::get<2>(grid[x+1][y]);
+	double down = std::get<2>(grid[x-1][y]);
 	
 	return Vector2((right-left)/(tile_size.x+tile_size.y), (up-down)/(tile_size.x+tile_size.y));
 }
 
-vector<vector<Vector2>> GridFluids::gradient(vector<vector<double>> &grid)
+vector<vector<Vector2>> GridFluids::gradient(vector<vector<tuple<double,double,double,double>>> &grid)
 {
     vector<vector<Vector2>> grad(vector_size.x, vector<Vector2>(vector_size.y, Vector2(0, 0)));
 	for (int x=1; x < vector_size.x-1; x++){
@@ -300,19 +337,15 @@ vector<vector<double>> GridFluids::divergent(vector<vector<Vect>> &vectors)
 	return div;
 }
 
-void GridFluids::poisson_solver(vector<vector<double>> &div, vector<vector<double>> &x0, double tol)
+void GridFluids::poisson_solver(vector<vector<double>> &div, vector<vector<tuple<double,double,double,double>>> &x0, double tol)
 {
 	for (int i=0; i < maxIterPoisson; i++){
-		vector<vector<double>> old = x0;
-		double accum = 0.0;
+		auto old = x0;
 		for (int x=1; x < vector_size.x-1; x++){
 			for (int y=1; y < vector_size.y-1; y++){
-				x0[x][y] = 0.25*(x0[x+1][y] + x0[x-1][y] + x0[x][y+1] + x0[x][y-1] + div[x][y]);
-				accum += abs(old[x][y] - x0[x][y]);
+				std::get<2>(x0[x][y]) = 0.25*(std::get<2>(old[x+1][y]) + std::get<2>(old[x-1][y]) + std::get<2>(old[x][y+1]) + std::get<2>(old[x][y-1]) + div[x][y]);
             }
         }
-		if (accum < tol)
-			break;
     }
 }
 
@@ -321,15 +354,15 @@ void GridFluids::advect(vector<vector<Vect>> &vectors, double timestep)
 {
     double s = timestep/subSteps;
 
-    vector<vector<double>> x0(vector_size.x, vector<double> (vector_size.y, 0));
+    vector<vector<tuple<double,double,double,double>>> x0(vector_size.x, vector<tuple<double,double,double,double>> (vector_size.y, make_tuple(0,0,0,0)));
 
-    get_prev_dens(vectors, x0);
+    get_prev_grid(vectors, x0);
     
+    auto old = x0;
     for (int x=1; x < vector_size.x-1; x++){
 		for (int y=1; y < vector_size.y-1; y++){    
 			Vector2 pos = vectors[x][y].pos-tile_size;
-			Vector2 vel = vectors[x][y].vel;
-
+			Vector2 vel = Vector2(std::get<0>(x0[x][y]) ,std::get<1>(x0[x][y]));
 			for (int _s=0; _s < subSteps; _s++){
 				pos -= s * vel;
 
@@ -358,16 +391,21 @@ void GridFluids::advect(vector<vector<Vect>> &vectors, double timestep)
                     break;
 				vel = bilinear_interpolation(vectors, pos, false);
             }
+
             Vector2 p = bilinear_interpolation(vectors, pos, true);
-			// vectors[x][y].pressure = p.x;
-            // x0[x][y] = p.y >= 0 ? p.y+0 : 0;
-            x0[x][y] = p.y;
+            vel = bilinear_interpolation(vectors, pos, false);
+            std::get<0>(x0[x][y]) = vel.x;
+            std::get<1>(x0[x][y]) = vel.y;
+            std::get<2>(x0[x][y]) = p.x;
+            std::get<3>(x0[x][y]) = p.y;
         }
     }
 
     for (int x=1; x < vector_size.x-1; x++){
 		for (int y=1; y < vector_size.y-1; y++){
-            vectors[x][y].density = x0[x][y];
+            vectors[x][y].vel = Vector2(std::get<0>(x0[x][y]),std::get<1>(x0[x][y]));
+            vectors[x][y].pressure = std::get<2>(x0[x][y]);
+            vectors[x][y].density = std::get<3>(x0[x][y]);
         }
     }
 }
@@ -385,28 +423,46 @@ Vector2 GridFluids::buoyancy(int i, int j)
 
 Vector2 GridFluids::mouse_repellent(int j, int i, Vector2 pos, Vector2 vel)
 {
-    Vector2 force = vel;
-    if (mouse_pos.x >= 0 && mouse_pos.y >= 0)
+    //TODO: força aplicada em todas as células no caminho
+    
+    int mouse_i = floor(mouse_pos.x / tile_size.x) + 1;
+    int mouse_j = floor(mouse_pos.y / tile_size.y) + 1;
+    // if (mouse_pos.x >= (i-2)*tile_size.x && mouse_pos.y >= (j-2)*tile_size.y && mouse_pos.x <= (i+2)*tile_size.x && mouse_pos.y <= (j+2)*tile_size.y)
+    // if (mouse_i >= i-1 && mouse_j >= j-1 && mouse_i <= i+1 && mouse_j <= j+1)
+    // {
+    // cout << mouse_i << ", " << mouse_j <<endl;
+    if(i>=mouse_i-1 && i<=mouse_i+1 && j>=mouse_j-1 && j<=mouse_j+1)
     {
-        // int mouse_i = floor((pos.y - tile_size.y / 2.0) / tile_size.y) + 1;
-        // int mouse_j = floor((pos.x - tile_size.x / 2.0) / tile_size.x) + 1;
-        if (mouse_pos.x >= (i-2)*tile_size.x && mouse_pos.y >= (j-2)*tile_size.y && mouse_pos.x <= (i+2)*tile_size.x && mouse_pos.y <= (j+2)*tile_size.y)
-        {
-            Vector2 f = pos - mouse_pos;
-            force = 100*f/f.length();
-            force += vel;
-        }
+        auto force =force_const * (mouse_pos - prev_mouse_pos);
+        return force.length() != 0? force : vel;
     }
-    return force;
+        // force = 100*f/f.length();
+        // force += vel;
+    // }
+    // return pos-mouse_pos;
+    return vel;
+}
+
+double GridFluids::get_source(int i, int j, double delta, Vector2 pos, double density)
+{
+    int source_i = floor(source_pos.y / tile_size.y) + 1;
+    int source_j = floor(source_pos.x / tile_size.x) + 1;
+    
+    //cout << source_i << ", " << source_j <<endl;
+    double dens = density;
+    dens += delta * (i==source_i & j==source_j ? source_const : 0);
+    
+    return dens;
 }
 void GridFluids::add_force(vector<vector<Vect>> &vectors, double delta, Vector2 force)
 {   
     for(int i=1; i < vector_size.x-1; i++){
         for (int j=1; j < vector_size.y-1; j++){
-            vectors[i][j].vel = mouse_repellent(i, j, vectors[i][j].pos, vectors[i][j].vel);//(force + buoyancy(i, j) + mouse_repellent(i, j, vectors[i][j].pos));
+            // cout << vectors[i][j].pos.x << ", " << vectors[i][j].pos.y << endl;
+            vectors[i][j].vel = (mouse_pos.x >= 0 && mouse_pos.y >= 0) && (prev_mouse_pos.x >= 0 && prev_mouse_pos.y >= 0)  ? mouse_repellent(i, j, vectors[i][j].pos, vectors[i][j].vel) : vectors[i][j].vel;
+            // vectors[i][j].vel = mouse_repellent(i, j, vectors[i][j].pos, vectors[i][j].vel);//(force + buoyancy(i, j) + mouse_repellent(i, j, vectors[i][j].pos));
             // vectors[i][j].density += i*tile_size.x >= grid_size.x/2-3*tile_size.x & j*tile_size.y >= grid_size.y/2-3*tile_size.y & i*tile_size.x <= grid_size.x/2+3*tile_size.x & j*tile_size.y <= grid_size.y/2+3*tile_size.y ? delta : 0.0;
-            vectors[i][j].density += i==20 & j == 20 ? 100*delta : 0.0;
-            vectors[i][j].density = vectors[i][j].density > 1 ? 1 : vectors[i][j].density;
+            vectors[i][j].density = (source_pos.x >= 0 && source_pos.y >= 0) ? get_source(i, j, delta, source_pos, vectors[i][j].density) : vectors[i][j].density;
         }
     }
 }
@@ -415,34 +471,39 @@ void GridFluids::update_boundary(vector<vector<Vect>> &vectors)
 {
     // vertical
     for (int x = 0; x < vector_size.x; x++) {
-        vectors[x][0].vel = -vectors[x][1].vel;
-        vectors[x][0].pressure = vectors[x][1].pressure;
-        vectors[x][0].density = vectors[x][1].density;
 
-        vectors[x][vector_size.y-1].vel = -vectors[x][vector_size.y-2].vel;
-        vectors[x][vector_size.y-1].pressure = vectors[x][vector_size.y-2].pressure;
-        vectors[x][vector_size.y-1].density = vectors[x][vector_size.y-2].density;
+        vectors[x][1].vel.x = -vectors[x][2].vel.x ;
+        vectors[x][vector_size.y-2].vel.x = -vectors[x][vector_size.y-3].vel.x;
+        vectors[x][1].density = vectors[x][2].density;
+        vectors[x][vector_size.y-2].density = vectors[x][vector_size.y-3].density;
+
+        vectors[1][1].vel.x  = 0.5*(vectors[2][1].vel.x + vectors[1][2].vel.x);
+        vectors[1][vector_size.y-2].vel.x = 0.5*(vectors[2][vector_size.y-2].vel.x + vectors[1][vector_size.y-3].vel.x); 
+        vectors[vector_size.x-2][1].vel.x  = 0.5*(vectors[vector_size.x-3][1].vel.x + vectors[vector_size.x-2][2].vel.x); 
+        vectors[vector_size.x-2][vector_size.y-2].vel.x  = 0.5*(vectors[vector_size.x-3][vector_size.y-2].vel.x + vectors[vector_size.x-2][vector_size.y-3].vel.x);
+        // vectors[x][0].pressure = vectors[x][1].pressure;
+        // vectors[x][vector_size.y-1].pressure = vectors[x][vector_size.y-2].pressure;
     }
     
     // horizontal
-    for (int y = 0; y < vector_size.y; y++) {
-        int fact = -1;
-        
-        vectors[0][y].pressure = vectors[1][y].pressure;
-        vectors[vector_size.x-1][y].pressure = vectors[vector_size.x-2][y].pressure;
-        vectors[0][y].density = vectors[1][y].density;
-        vectors[vector_size.x-1][y].density = vectors[vector_size.x-2][y].density;
-        if (y == 0)
-            fact = 1;
+    for (int y = 0; y < vector_size.y; y++) {        
+        vectors[1][y].vel.y = -vectors[2][y].vel.y;
+        vectors[vector_size.x-2][y].vel.y = -vectors[vector_size.x-3][y].vel.y;
+        vectors[1][y].density = vectors[2][y].density;
+        vectors[vector_size.x-2][y].density = vectors[vector_size.x-3][y].density;
 
-        vectors[0][y].vel = vectors[1][y].vel * fact;
-        vectors[vector_size.x-1][y].vel = vectors[vector_size.x-2][y].vel * fact;
+        vectors[1][1].vel.y  = 0.5*(vectors[2][1].vel.y + vectors[1][2].vel.y);
+        vectors[1][vector_size.y-2].vel.y = 0.5*(vectors[2][vector_size.y-2].vel.y + vectors[1][vector_size.y-3].vel.y); 
+        vectors[vector_size.x-2][1].vel.y  = 0.5*(vectors[vector_size.x-3][1].vel.y + vectors[vector_size.x-2][2].vel.y); 
+        vectors[vector_size.x-2][vector_size.y-2].vel.y  = 0.5*(vectors[vector_size.x-3][vector_size.y-2].vel.y + vectors[vector_size.x-2][vector_size.y-3].vel.y);
+        // vectors[0][y].pressure = vectors[1][y].pressure;
+        // vectors[vector_size.x-1][y].pressure = vectors[vector_size.x-2][y].pressure;
     }
-    //density
-    // vectors[0][0].density  = (vectors[1][0].density + vectors[0][1].density);
-    // vectors[0][vector_size.y-1].density = (vectors[1][vector_size.y-1].density + vectors[0][vector_size.y-2].density); 
-    // vectors[vector_size.x-1][0].density  = (vectors[vector_size.x-2][0].density + vectors[vector_size.x-1][1].density); 
-    // vectors[vector_size.x-1][vector_size.y-1].density  = (vectors[vector_size.x-2][vector_size.y-1].density + vectors[vector_size.x-1][vector_size.y-2].density);
+    // density    
+    vectors[1][1].density  = 0.5*(vectors[2][1].density + vectors[1][2].density);
+    vectors[1][vector_size.y-2].density = 0.5*(vectors[2][vector_size.y-2].density + vectors[1][vector_size.y-3].density); 
+    vectors[vector_size.x-1][1].density  = 0.5*(vectors[vector_size.x-3][1].density + vectors[vector_size.x-2][2].density); 
+    vectors[vector_size.x-2][vector_size.y-2].density  = 0.5*(vectors[vector_size.x-3][vector_size.y-2].density + vectors[vector_size.x-2][vector_size.y-3].density);
 }
 
 Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, Vector2 pos, bool pressure)
@@ -453,10 +514,10 @@ Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, Vector
 	
     pos += tile_size;
     
-	Vect q11 = vectors[i+1][j];
-	Vect q12 = vectors[i][j];
-	Vect q21 = vectors[i+1][j+1];
-	Vect q22 = vectors[i][j+1];
+	Vect q11 = vectors[i][j];
+	Vect q12 = vectors[i+1][j];
+	Vect q21 = vectors[i][j+1];
+	Vect q22 = vectors[i+1][j+1];
 
 	double x1 = q11.pos.x;
 	double y1 = q11.pos.y;
@@ -466,21 +527,21 @@ Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, Vector
 
     if (pressure){
         double press = (q11.pressure * (x2 - pos.x) * (y2 - pos.y) +
-            q12.pressure * (x2 - pos.x) * (pos.y - y1) +
             q21.pressure * (pos.x - x1) * (y2 - pos.y) +
+            q12.pressure * (x2 - pos.x) * (pos.y - y1) +
             q22.pressure * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
         double dens = (q11.density * (x2 - pos.x) * (y2 - pos.y) +
-            q12.density * (x2 - pos.x) * (pos.y - y1) +
             q21.density * (pos.x - x1) * (y2 - pos.y) +
+            q12.density * (x2 - pos.x) * (pos.y - y1) +
             q22.density * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
 
         return Vector2(press, dens);
     }else{
         return (q11.vel * (x2 - pos.x) * (y2 - pos.y) +
-            q12.vel * (x2 - pos.x) * (pos.y - y1) +
             q21.vel * (pos.x - x1) * (y2 - pos.y) +
+            q12.vel * (x2 - pos.x) * (pos.y - y1) +
             q22.vel * (pos.x - x1) * (pos.y - y1)
             ) / ((x2 - x1) * (y2 - y1));
     }	
@@ -502,11 +563,11 @@ Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pr
     aux = grid[i];
     aux2 = grid[i+1];
 
-    Object* q11 = aux2[j];
-	Object* q12 = aux[j];
+    Object* q11 = aux[j];
+	Object* q12 = aux2[j];
 
-	Object* q21 = aux2[j+1];
-	Object* q22 = aux[j+1];
+	Object* q21 = aux[j+1];
+	Object* q22 = aux2[j+1];
 
     Vector2 q11_pos = q11->get("pos");
     Vector2 q22_pos = q22->get("pos");
@@ -533,7 +594,6 @@ Vector2 GridFluids::bilinear_interpolation_grid(Array grid, Vector2 pos, bool pr
         p12 = q12->get("density");
         p21 = q21->get("density");
         p22 = q22->get("density");
-        // cout << p11 << ", " << p12 << ", " << p21 << ", " << p22 << endl;
         double d = (p11 * (x2 - pos.x) * (y2 - pos.y) +
             p12 * (x2 - pos.x) * (pos.y - y1) +
             p21 * (pos.x - x1) * (y2 - pos.y) +
