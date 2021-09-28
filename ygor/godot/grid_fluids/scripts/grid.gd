@@ -15,7 +15,7 @@ var rho = 1.0
 var diff = 0
 var gravity = Vector2(0, 0) 
 var sub_steps = 1 # random value, maybe be lowered for performance improvement
-var force = 100
+var force = 500
 var source = 5
 var MAX_VELOCITY = 500
 
