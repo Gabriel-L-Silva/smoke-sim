@@ -477,14 +477,13 @@ void GridFluids::update_boundary(vector<vector<Vect>> &vectors)
         vectors[x][0].density = vectors[x][1].density;
         vectors[x][vector_size.y-1].density = vectors[x][vector_size.y-2].density;
 
-        vectors[0][0].vel.x  = (vectors[1][0].vel.x + vectors[0][1].vel.x);
-        vectors[0][vector_size.y-1].vel.x = (vectors[1][vector_size.y-1].vel.x + vectors[0][vector_size.y-2].vel.x); 
-        vectors[vector_size.x-1][0].vel.x  = (vectors[vector_size.x-2][0].vel.x + vectors[vector_size.x-1][1].vel.x); 
-        vectors[vector_size.x-1][vector_size.y-1].vel.x  = (vectors[vector_size.x-2][vector_size.y-1].vel.x + vectors[vector_size.x-1][vector_size.y-2].vel.x);
+        vectors[0][0].vel.x  = 0.5*(vectors[1][0].vel.x + vectors[0][1].vel.x);
+        vectors[0][vector_size.y-1].vel.x = 0.5*(vectors[1][vector_size.y-1].vel.x + vectors[0][vector_size.y-2].vel.x); 
+        vectors[vector_size.x-1][0].vel.x  = 0.5*(vectors[vector_size.x-2][0].vel.x + vectors[vector_size.x-1][1].vel.x); 
+        vectors[vector_size.x-1][vector_size.y-1].vel.x  = 0.5*(vectors[vector_size.x-2][vector_size.y-1].vel.x + vectors[vector_size.x-1][vector_size.y-2].vel.x);
         // vectors[x][0].pressure = vectors[x][1].pressure;
         // vectors[x][vector_size.y-1].pressure = vectors[x][vector_size.y-2].pressure;
     }
-    cout << 'x' <<endl;
     // horizontal
     for (int y = 0; y < vector_size.y; y++) {        
         vectors[0][y].vel.y = -vectors[1][y].vel.y;
@@ -492,19 +491,18 @@ void GridFluids::update_boundary(vector<vector<Vect>> &vectors)
         vectors[0][y].density = vectors[1][y].density;
         vectors[vector_size.x-1][y].density = vectors[vector_size.x-2][y].density;
 
-        vectors[0][0].vel.y  = (vectors[1][0].vel.y + vectors[0][1].vel.y);
-        vectors[0][vector_size.y-1].vel.y = (vectors[1][vector_size.y-1].vel.y + vectors[0][vector_size.y-2].vel.y); 
-        vectors[vector_size.x-1][0].vel.y  = (vectors[vector_size.x-2][0].vel.y + vectors[vector_size.x-1][1].vel.y); 
-        vectors[vector_size.x-1][vector_size.y-1].vel.y  = (vectors[vector_size.x-2][vector_size.y-1].vel.y + vectors[vector_size.x-1][vector_size.y-2].vel.y);
+        vectors[0][0].vel.y  = 0.5*(vectors[1][0].vel.y + vectors[0][1].vel.y);
+        vectors[0][vector_size.y-1].vel.y = 0.5*(vectors[1][vector_size.y-1].vel.y + vectors[0][vector_size.y-2].vel.y); 
+        vectors[vector_size.x-1][0].vel.y  = 0.5*(vectors[vector_size.x-2][0].vel.y + vectors[vector_size.x-1][1].vel.y); 
+        vectors[vector_size.x-1][vector_size.y-1].vel.y  = 0.5*(vectors[vector_size.x-2][vector_size.y-1].vel.y + vectors[vector_size.x-1][vector_size.y-2].vel.y);
         // vectors[0][y].pressure = vectors[1][y].pressure;
         // vectors[vector_size.x-1][y].pressure = vectors[vector_size.x-2][y].pressure;
     }
-    cout << 'y' <<endl;
     // density    
-    vectors[0][0].density  = (vectors[1][0].density + vectors[0][1].density);
-    vectors[0][vector_size.y-1].density = (vectors[1][vector_size.y-1].density + vectors[0][vector_size.y-2].density); 
-    vectors[vector_size.x-1][0].density  = (vectors[vector_size.x-2][0].density + vectors[vector_size.x-1][1].density); 
-    vectors[vector_size.x-1][vector_size.y-1].density  = (vectors[vector_size.x-2][vector_size.y-1].density + vectors[vector_size.x-1][vector_size.y-2].density);
+    vectors[0][0].density  = 0.5*(vectors[1][0].density + vectors[0][1].density);
+    vectors[0][vector_size.y-1].density = 0.5*(vectors[1][vector_size.y-1].density + vectors[0][vector_size.y-2].density); 
+    vectors[vector_size.x-1][0].density  = 0.5*(vectors[vector_size.x-2][0].density + vectors[vector_size.x-1][1].density); 
+    vectors[vector_size.x-1][vector_size.y-1].density  = 0.5*(vectors[vector_size.x-2][vector_size.y-1].density + vectors[vector_size.x-1][vector_size.y-2].density);
 }
 
 Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, Vector2 pos, bool pressure)
