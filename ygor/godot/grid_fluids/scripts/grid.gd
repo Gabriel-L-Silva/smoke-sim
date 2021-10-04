@@ -1,17 +1,17 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(64, 64)
+var squares_qtd 	= Vector2(50, 50)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
 var timer = 0.0
-var mouse_pos: Vector2
+var mouse_pos = Vector2(0, 0)
 
 var rho = 1.0
 var gravity = Vector2(0, -0.981) 
 var sub_steps = 10 # random value, maybe be lowered for performance improvement
-var MAX_VELOCITY = 100
+var MAX_VELOCITY = 300
 
 var Particle = preload("res://scenes/particle.tscn")
 var Vector = preload("res://scenes/vector.tscn")
@@ -25,7 +25,8 @@ class VectorClass:
 	var pos: Vector2
 
 func get_velocity(_pos):
-	return Vector2(_pos.x, _pos.y)/100
+#	return Vector2(_pos.x, _pos.y)/100
+	return Vector2(0,0)
 
 func get_pressure(_pos):
 	return 10 #(_pos.x+_pos.y)/100
@@ -95,7 +96,8 @@ func add_particle(pos):
 	add_child(new_particle)
 
 func external_forces():
-	var force = gravity
+#	var force = gravity
+	var force = Vector2(0, 0)
 	
 	if Input.is_action_pressed("ui_left"):
 		force += Vector2(-50, 0)
@@ -108,8 +110,9 @@ func external_forces():
 	
 	return force
 	
-func add_mouse_repel(pos, delta):
-	if pos.x < 0 or pos.x > grid_size.x or pos.y < 0 or pos.y > grid_size.y:
+func add_mouse_repel(pos, prev, delta):
+	if pos.x < 0 or pos.x > grid_size.x or pos.y < 0 or pos.y > grid_size.y or (
+		prev.x < 0 or prev.x > grid_size.x or prev.y < 0 or prev.y > grid_size.y):
 		return
 	
 	var i = floor( pos.y / tile_size.y) + 1;
@@ -120,29 +123,24 @@ func add_mouse_repel(pos, delta):
 	if j == squares_qtd.y:
 		j -= 1
 	
-	grid_vectors[i][j].velocity     += Vector2(-25, 0) * delta
-	grid_vectors[i+1][j].velocity   += Vector2(-25, 0) * delta
-	grid_vectors[i][j+1].velocity   += Vector2(25, 0) * delta
-	grid_vectors[i+1][j+1].velocity += Vector2(25, 0) * delta
+	var v: Vector2 = pos-prev
 	
-	grid_vectors[i][j].update()
-	grid_vectors[i+1][j].update()
-	grid_vectors[i][j+1].update()
-	grid_vectors[i+1][j+1].update()
+	grid_vectors[i][j].velocity += v.normalized() * MAX_VELOCITY
 
 
 func _process(delta):
 	timer += delta
+	var cur_mouse = get_global_mouse_position()
 	
 	if Input.is_action_pressed("left_click"):
-		var pos = get_global_mouse_position()
-		if timer >= 0.05 and not get_parent().check_inter_col(pos):
-			add_particle(pos)
+		if timer >= 0.05 and not get_parent().check_inter_col(cur_mouse):
+			add_particle(cur_mouse)
 			timer = 0
 	
 	if Input.is_action_pressed("right_click"):
-		var pos = get_global_mouse_position()
-		add_mouse_repel(pos, delta)
+		add_mouse_repel(cur_mouse, mouse_pos, delta)
+	
+	mouse_pos = cur_mouse
 	
 	if get_parent().interface_visible:
 		return

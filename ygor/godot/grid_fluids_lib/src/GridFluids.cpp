@@ -16,7 +16,7 @@ void GridFluids::_register_methods()
 
 void GridFluids::_init()
 {
-    
+
 }
 
 vector<vector<Vect>> copy_grid(Array grid)
@@ -69,21 +69,9 @@ void GridFluids::update_grid(vector<vector<Vect>> &vectors, Array grid){
     }
 }
 
-vector<vector<double>> GridFluids::get_old_pressure(vector<vector<Vect>> &vectors)
-{
-    vector<vector<double>> x0(vector_size.x, vector<double>(vector_size.y, 0));
-    for (int x=0; x < vector_size.x; x++){
-        for (int y=0; y < vector_size.y; y++){
-            x0[x][y] = vectors[x][y].pressure;
-        }
-    }
-
-    return x0;
-}
-
 void GridFluids::project(vector<vector<Vect>> &vectors)
 {
-    vector<vector<double>> x0 = get_old_pressure(vectors);
+    vector<vector<double>> x0 (vector_size.x, vector<double> (vector_size.y, 0.0));
 
 	poisson_solver(divergent(vectors), x0, 10e-5);
 	vector<vector<Vector2>> grad_q = gradient(x0);
@@ -187,7 +175,8 @@ void GridFluids::advect(vector<vector<Vect>> &vectors, double timestep)
 				vel = bilinear_interpolation(old_vector, pos, false);
             }
             Vector2 p = bilinear_interpolation(old_vector, pos, true);
-			vectors[x][y].pressure = p.x;        
+			vectors[x][y].pressure = p.x;
+            vectors[x][y].vel = bilinear_interpolation(old_vector, pos, false);
         }
     }
 }
@@ -234,8 +223,8 @@ Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, Vector
 	int j = floor( (pos.x - tile_size.x / 2.0) / tile_size.x) + 1;
 
     pos += tile_size;
-	
-	Vect q11 = vectors[i+1][j];
+
+    Vect q11 = vectors[i+1][j];
 	Vect q12 = vectors[i][j];
 	Vect q21 = vectors[i+1][j+1];
 	Vect q22 = vectors[i][j+1];
@@ -263,30 +252,39 @@ Vector2 GridFluids::bilinear_interpolation(vector<vector<Vect>> &vectors, Vector
     }	
 }
 
-
 void GridFluids::update_particles(vector<vector<Vect>> &vectors, Array particles, double delta)
 {
     for (int x = 0; x < particles.size(); x++){
         Node* p = particles[x];
 
         Vector2 position = p->get("position");
+        Vector2 vel = p->get("vel");
         double speed = p->get("speed");
         Vector2 p_size = p->get("p_size");
 
         Node* p_particles = p->get_node("Particles2D");
 
-        Vector2 vel = bilinear_interpolation(vectors, position, false);
-        double pressure = bilinear_interpolation(vectors, position, true).x;
-
-        if (pressure < 0)
-            pressure *= -1;
-
-        vel *=  sqrt(2.0 * pressure / rho);
-
-        // p->set("vel", vel);
+        // Vector2 vel = bilinear_interpolation(vectors, position, false);
+        Vector2 pos = position;
+        double s = delta/subSteps;
+        for (int _s=0; _s < subSteps; _s++){
+            pos -= s * vel;
+            if (pos.x < 0)
+                pos.x = 0;
+            if (pos.y < 0)
+                pos.y = 0;
+            if (pos.x > grid_size.x)
+                pos.x = grid_size.x;
+            if (pos.y > grid_size.y)
+                pos.y = grid_size.y;
+            vel = bilinear_interpolation(vectors, pos, false);
+        }
+        vel = bilinear_interpolation(vectors, pos, false);
+        p->set("vel", vel);
 
         Vector3 s_speed = Vector3(-vel.x, -vel.y, 0) * speed;
         p_particles->set_indexed("process_material:gravity", s_speed);
+        p_particles->set_indexed("process_material:angular_velocity", (vel.x + vel.y)/10.0);
 
         position += delta * vel * speed;
         if (position.x < 0 + p_size.x)
@@ -299,7 +297,6 @@ void GridFluids::update_particles(vector<vector<Vect>> &vectors, Array particles
             position.y = grid_size.y - p_size.y;
 
         p->set("position", position);
-
         p->call("update");
     }
 }
