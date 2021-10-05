@@ -11,7 +11,7 @@ var mouse_pos = Vector2(0, 0)
 var rho = 1.0
 var gravity = Vector2(0, -0.981) 
 var sub_steps = 1 # one backtrack only usualy works best
-var MAX_VELOCITY = 100
+var MAX_VELOCITY = 120
 
 var Particle = preload("res://scenes/particle.tscn")
 var Vector = preload("res://scenes/vector.tscn")
@@ -124,8 +124,12 @@ func add_mouse_repel(pos, prev, delta):
 		j -= 1
 	
 	var v: Vector2 = pos-prev
+	v = v.normalized()
 	
-	grid_vectors[i][j].velocity += v.normalized() * MAX_VELOCITY
+	grid_vectors[i][j].velocity += v * MAX_VELOCITY
+	grid_vectors[i+1][j].velocity += v * MAX_VELOCITY
+	grid_vectors[i][j+1].velocity += v * MAX_VELOCITY
+	grid_vectors[i+1][j+1].velocity += v * MAX_VELOCITY
 
 
 func _process(delta):
