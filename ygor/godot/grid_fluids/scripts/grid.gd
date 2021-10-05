@@ -10,8 +10,8 @@ var mouse_pos = Vector2(0, 0)
 
 var rho = 1.0
 var gravity = Vector2(0, -0.981) 
-var sub_steps = 10 # random value, maybe be lowered for performance improvement
-var MAX_VELOCITY = 300
+var sub_steps = 1 # one backtrack only usualy works best
+var MAX_VELOCITY = 100
 
 var Particle = preload("res://scenes/particle.tscn")
 var Vector = preload("res://scenes/vector.tscn")

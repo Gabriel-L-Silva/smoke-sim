@@ -268,7 +268,7 @@ void GridFluids::update_particles(vector<vector<Vect>> &vectors, Array particles
         Vector2 pos = position;
         double s = delta/subSteps;
         for (int _s=0; _s < subSteps; _s++){
-            pos -= s * vel;
+            pos -= s * vel * speed;
             if (pos.x < 0)
                 pos.x = 0;
             if (pos.y < 0)
