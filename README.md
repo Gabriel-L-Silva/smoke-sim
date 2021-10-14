@@ -6,7 +6,11 @@ Implementação de um simulador de fumaça.
 ![image](https://user-images.githubusercontent.com/29693842/137381482-6eb43f7c-7aac-43ff-8863-d57ef2ce79c4.png)
 
 ## Interface gráfica
-Barra de espaço: abre e fecha a interface. (A simulação pausa enquanto a interface estiver aberta)
+Barra de espaço: Abre e fecha a interface. (A simulação pausa enquanto a interface estiver aberta)
+
+Botão esquerdo do mouse: Adiciona fumaça na posição do mouse.
+
+Botão direito do mouse: Enquanto segurado aplica forças no caminho feito pelo mouse.
 ### Opções
 Show Grid: Mostra a malha que a simulação utiliza.
 
