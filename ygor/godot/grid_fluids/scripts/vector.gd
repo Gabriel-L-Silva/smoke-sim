@@ -8,7 +8,10 @@ var pos: Vector2
 onready var grid = get_parent().get_parent()
 
 func _ready():
-	position = pos - grid.tile_size
+	if grid.use_bilinear_interp:
+		position = pos - grid.tile_size
+	else:
+		position = pos - grid.tile_size*2
 	set_physics_process(false)
 
 func _draw():

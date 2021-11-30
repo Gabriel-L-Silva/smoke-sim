@@ -13,7 +13,7 @@ func _draw():
 		var limit_x = grid.squares_qtd.x * grid.tile_size.x
 		var limit_y = grid.squares_qtd.y * grid.tile_size.y
 		
-		# cols
+		# cols	
 		for x in range(1,grid.squares_qtd.x+2):
 			var col_pos = x * grid.tile_size.x
 

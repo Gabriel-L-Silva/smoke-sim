@@ -30,8 +30,11 @@ class GridFluids: public Node2D
     Vector2 tile_size = Vector2(1, 1);
     Vector2 grid_size = Vector2(800, 800);
     Vector2 vector_size = Vector2(0, 0);
+    bool bilinear_interp = true;
 
 public:
+    int initial=0, end=0;
+
     static void _register_methods();
     void _init();
 
@@ -51,6 +54,7 @@ public:
     void update_boundary(vector<vector<Vect>> &vectors);
     Vector2 bilinear_interpolation(vector<vector<Vect>> &vectors, Vector2 pos, bool pressure);
     vector<vector<double>> get_old_pressure(vector<vector<Vect>> &vectors);
+    Vector2 catmull_rom_interp(vector<vector<Vect>> &vectors, Vector2 pos, bool pressure);
 };
 
 #endif
