@@ -13,9 +13,7 @@ Code adapted from Alberto Santini implementation available at:
 https://github.com/albertosantini/python-fluid
 """
 import numpy as np
-
-def set_bnd(N, b, x):
-    """We assume that the fluid is contained in a box with solid walls.
+"""We assume that the fluid is contained in a box with solid walls.
 
     No flow should exit the walls. This simply means that the horizontal
     component of the velocity should be zero on the vertical walls, while the
@@ -24,6 +22,8 @@ def set_bnd(N, b, x):
     continuity. The following code implements these conditions.
     """
 
+def set_bnd(N, b, x):
+    
     if b == 1:
         x[0, 1:-1] = -x[1, 1:-1]
         x[-1, 1:-1] = -x[N, 1:-1]
@@ -44,6 +44,7 @@ def set_bnd(N, b, x):
 
 
 def lin_solve(N, b, x, x0, a, c):
+    #gauss-siedel
     """lin_solve."""
 
     for k in range(20):
@@ -94,6 +95,7 @@ def advect(N, b, d, d0, u, v, dt):
     S0 = 1 - S1
 
     Y = np.minimum(np.maximum(Y, 0.5), N+0.5)
+    #porque acha o max e depois o minimo? olhar paper
     J0 = Y.astype(int)
     J1 = J0 + 1
     T1 = Y - J0
@@ -150,3 +152,5 @@ def vel_step(N, u, v, u0, v0, visc, dt):
     advect(N, 1, u, u0, u0, v0, dt)
     advect(N, 2, v, v0, u0, v0, dt)
     project(N, u, v, u0, v0)
+
+
