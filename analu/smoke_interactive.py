@@ -7,6 +7,7 @@
 import numpy as np 
 from smoke_solver import vel_step, dens_step
 
+print("funcionou")
 
 N = 64 #tamanho do grid
 size = N + 2 #tamanho efetivo do grid, com ghost cells
@@ -143,5 +144,4 @@ if __name__ == '__main__':
     #vmin e vmax: range do color map
     animation = FuncAnimation(fig, update, interval=10, frames=800)
     #interval: delay entre os frames em milissegundos, super rápido
-    #o que são os frames?
     plt.show()
