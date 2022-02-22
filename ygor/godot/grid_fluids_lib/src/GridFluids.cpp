@@ -203,8 +203,8 @@ void GridFluids::poisson_solver(vector<vector<double>> &div, vector<vector<doubl
 			for (int y=1; y < vector_size.y-1; y++){
 				x0[x][y] = 0.25*(x0[x+1][y] + x0[x-1][y] + x0[x][y+1] + x0[x][y-1] + div[x][y]);
 				accum += abs(old[x][y] - x0[x][y]);
-            }
-        }
+            } 
+        } 
 		if (accum < tol)
 			break;
     }

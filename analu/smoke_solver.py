@@ -45,9 +45,10 @@ def set_bnd(N, b, x):
 
 def lin_solve(N, b, x, x0, a, c):
     #gauss-siedel
+    #PRECISO ALTERAR AQUI
     """lin_solve."""
 
-    for k in range(20):
+    for k in range(20): #porque in range 20???
         x[1:-1, 1:-1] = (x0[1:-1, 1:-1] +
                          a * (x[:N, 1:-1] + x[2:, 1:-1] +
                               x[1:-1, :N] + x[1:-1, 2:])) / c

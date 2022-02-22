@@ -1,7 +1,7 @@
 extends Node2D
 
 var grid_size 		= OS.get_window_size()
-var squares_qtd 	= Vector2(32, 32)
+var squares_qtd 	= Vector2(16, 16)
 var tile_size 		= Vector2(grid_size.x/squares_qtd.x, grid_size.y/squares_qtd.y)
 var show_vectors 	= false
 var show_grid 		= false
@@ -107,6 +107,7 @@ func get_minmax_pressure():
 	return result
 
 func bilinear_interpolation_vel(pos):
+	print("chamou interp");
 	var result = $native_lib.bilinear_interpolation_grid(grid_vectors, pos, false);
 	return result
 
